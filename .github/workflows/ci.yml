@@ -1,0 +1,56 @@
+name: DataGenie CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  catalog-test-and-migrate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: datagenie
+          POSTGRES_USER: datagenie
+          POSTGRES_PASSWORD: datagenie_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U datagenie -d datagenie"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    defaults:
+      run:
+        working-directory: apps/catalog-api
+    env:
+      DATAGENIE_ENVIRONMENT: development
+      DATAGENIE_DATABASE_URL: postgresql+psycopg://datagenie:datagenie_ci_password@localhost:5432/datagenie
+      DATAGENIE_AUTH_ENABLED: "true"
+      DATAGENIE_AUTH_JWT_SECRET: ci-only-secret-with-at-least-thirty-two-characters
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: apps/catalog-api/requirements.txt
+      - name: Install catalog dependencies
+        run: pip install -r requirements.txt
+      - name: Validate migration chain
+        run: alembic upgrade head && alembic current
+      - name: Run catalog tests
+        run: pytest -q
+
+  compose-topology:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create non-production Compose environment
+        run: cp .env.example .env
+      - name: Validate Compose configuration
+        run: docker compose --env-file .env -f infra/docker-compose.yml config -q
+      - name: Validate scripts
+        run: bash -n infra/scripts/backup-postgres.sh infra/scripts/verify-postgres-restore.sh

@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Local service state and configuration
+*.db
+*.sqlite
+*.sqlite3
+.env
+
+# Editor and operating-system artifacts
+.DS_Store
+.idea/

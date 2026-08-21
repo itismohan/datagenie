@@ -1,11 +1,190 @@
 
-version: '3.9'
+name: datagenie
+
 services:
-  catalog-api:
-    image: python:3.11
-    working_dir: /app
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DATAGENIE_POSTGRES_DB:-datagenie}
+      POSTGRES_USER: ${DATAGENIE_POSTGRES_USER:-datagenie}
+      POSTGRES_PASSWORD: ${DATAGENIE_POSTGRES_PASSWORD:?Set DATAGENIE_POSTGRES_PASSWORD in .env}
     volumes:
-      - ./apps/catalog-api:/app
-    command: bash -c "pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [datagenie-internal]
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks: [datagenie-internal]
+
+  neo4j:
+    image: neo4j:5-community
+    environment:
+      NEO4J_AUTH: neo4j/${DATAGENIE_NEO4J_PASSWORD:?Set DATAGENIE_NEO4J_PASSWORD in .env}
+    volumes:
+      - neo4j-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [datagenie-internal]
+
+  catalog-migrate:
+    build:
+      context: ../apps/catalog-api
+    env_file: ../.env
+    environment:
+      DATAGENIE_DATABASE_URL: postgresql+psycopg://${DATAGENIE_POSTGRES_USER:-datagenie}:${DATAGENIE_POSTGRES_PASSWORD:?Set DATAGENIE_POSTGRES_PASSWORD in .env}@postgres:5432/${DATAGENIE_POSTGRES_DB:-datagenie}
+      DATAGENIE_AUTH_ENABLED: ${DATAGENIE_AUTH_ENABLED:-true}
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [datagenie-internal]
+    restart: "no"
+
+  catalog-api:
+    build:
+      context: ../apps/catalog-api
+    env_file: ../.env
+    environment:
+      DATAGENIE_DATABASE_URL: postgresql+psycopg://${DATAGENIE_POSTGRES_USER:-datagenie}:${DATAGENIE_POSTGRES_PASSWORD:?Set DATAGENIE_POSTGRES_PASSWORD in .env}@postgres:5432/${DATAGENIE_POSTGRES_DB:-datagenie}
+      DATAGENIE_AUTH_ENABLED: ${DATAGENIE_AUTH_ENABLED:-true}
+    depends_on:
+      catalog-migrate:
+        condition: service_completed_successfully
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [datagenie-internal]
+
+  connector-api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.python-api
+      args:
+        SERVICE_DIR: apps/connector-api
+    networks: [datagenie-internal]
+
+  lineage-api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.python-api
+      args:
+        SERVICE_DIR: apps/lineage-api
+    environment:
+      DATAGENIE_NEO4J_URI: bolt://neo4j:7687
+      DATAGENIE_NEO4J_USERNAME: neo4j
+      DATAGENIE_NEO4J_PASSWORD: ${DATAGENIE_NEO4J_PASSWORD:?Set DATAGENIE_NEO4J_PASSWORD in .env}
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks: [datagenie-internal]
+
+  quality-migrate:
+    build:
+      context: ../apps/quality-api
+    environment:
+      DATAGENIE_QUALITY_DATABASE_URL: postgresql+psycopg://${DATAGENIE_POSTGRES_USER:-datagenie}:${DATAGENIE_POSTGRES_PASSWORD:?Set DATAGENIE_POSTGRES_PASSWORD in .env}@postgres:5432/${DATAGENIE_POSTGRES_DB:-datagenie}
+      DATAGENIE_REDIS_URL: redis://redis:6379/0
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [datagenie-internal]
+    restart: "no"
+
+  quality-api:
+    build:
+      context: ../apps/quality-api
+    environment:
+      DATAGENIE_QUALITY_DATABASE_URL: postgresql+psycopg://${DATAGENIE_POSTGRES_USER:-datagenie}:${DATAGENIE_POSTGRES_PASSWORD:?Set DATAGENIE_POSTGRES_PASSWORD in .env}@postgres:5432/${DATAGENIE_POSTGRES_DB:-datagenie}
+      DATAGENIE_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      quality-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [datagenie-internal]
+
+  quality-worker:
+    build:
+      context: ../apps/quality-api
+    environment:
+      DATAGENIE_QUALITY_DATABASE_URL: postgresql+psycopg://${DATAGENIE_POSTGRES_USER:-datagenie}:${DATAGENIE_POSTGRES_PASSWORD:?Set DATAGENIE_POSTGRES_PASSWORD in .env}@postgres:5432/${DATAGENIE_POSTGRES_DB:-datagenie}
+      DATAGENIE_REDIS_URL: redis://redis:6379/0
+    command: ["celery", "-A", "app.workers.celery_app.celery", "worker", "--loglevel=INFO", "--queues=quality"]
+    depends_on:
+      quality-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks: [datagenie-internal]
+
+  quality-scheduler:
+    build:
+      context: ../apps/quality-api
+    environment:
+      DATAGENIE_QUALITY_DATABASE_URL: postgresql+psycopg://${DATAGENIE_POSTGRES_USER:-datagenie}:${DATAGENIE_POSTGRES_PASSWORD:?Set DATAGENIE_POSTGRES_PASSWORD in .env}@postgres:5432/${DATAGENIE_POSTGRES_DB:-datagenie}
+      DATAGENIE_REDIS_URL: redis://redis:6379/0
+    command: ["celery", "-A", "app.workers.celery_app.celery", "beat", "--loglevel=INFO"]
+    depends_on:
+      quality-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks: [datagenie-internal]
+
+  search-api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.python-api
+      args:
+        SERVICE_DIR: apps/search-api
+    networks: [datagenie-internal]
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    profiles: ["observability"]
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus"]
+    depends_on:
+      catalog-api:
+        condition: service_healthy
+    ports:
+      - "9090:9090"
+    networks: [datagenie-internal]
+
+volumes:
+  postgres-data:
+  redis-data:
+  neo4j-data:
+  prometheus-data:
+
+networks:
+  datagenie-internal:
+    driver: bridge

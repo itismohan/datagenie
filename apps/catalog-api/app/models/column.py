@@ -1,12 +1,6 @@
 
-from sqlalchemy import Column as SAColumn, String, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
+"""Backward-compatible imports for the unified catalog domain model."""
 
-Base = declarative_base()
+from app.models.catalog import AssetColumn, Base
 
-class Column(Base):
-    __tablename__ = "columns"
-    id = SAColumn(String, primary_key=True)
-    asset_id = SAColumn(String, ForeignKey("assets.id"))
-    name = SAColumn(String)
-    data_type = SAColumn(String)
+Column = AssetColumn

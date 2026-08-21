@@ -1,19 +1,139 @@
 
-from fastapi import APIRouter
-from app.schemas.asset import AssetCreate, Asset
-import uuid
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import Response
+from sqlalchemy.orm import Session
+
+from app.core.security import (
+    ROLE_ANALYST,
+    ROLE_DATA_OWNER,
+    ROLE_DATA_STEWARD,
+    ROLE_PLATFORM_ADMIN,
+    ROLE_READ_ONLY,
+    Principal,
+    can_curate_asset,
+    get_current_principal,
+    require_roles,
+)
+from app.db.session import get_db
+from app.models.catalog import Asset
+from app.schemas.catalog import AssetCurationUpdate, AssetRead, AssetSearchResponse
+from app.services.audit_service import record_audit_event
+from app.services.catalog_service import get_asset_or_404, search_assets, update_asset_curation
+from app.services.idempotency_service import IdempotencyContext, get_idempotency_context, replay_response, store_response
 
 router = APIRouter()
-ASSETS = {}
+asset_reader = require_roles(ROLE_PLATFORM_ADMIN, ROLE_DATA_STEWARD, ROLE_DATA_OWNER, ROLE_ANALYST, ROLE_READ_ONLY)
 
-@router.post("/", response_model=Asset)
-def create_asset(asset: AssetCreate):
-    aid = str(uuid.uuid4())
-    data = asset.dict()
-    data["id"] = aid
-    ASSETS[aid] = data
-    return data
 
-@router.get("/", response_model=list[Asset])
-def list_assets():
-    return list(ASSETS.values())
+def request_id(request: Request) -> str:
+    return getattr(request.state, "request_id", "unknown")
+
+
+@router.get("/", response_model=AssetSearchResponse)
+def list_assets(
+    request: Request,
+    q: str | None = Query(default=None, min_length=1, max_length=255),
+    source_id: str | None = None,
+    asset_type: str | None = None,
+    lifecycle_status: str | None = None,
+    owner: str | None = None,
+    classification: str | None = None,
+    tag: str | None = None,
+    freshness_before: datetime | None = None,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(asset_reader),
+) -> AssetSearchResponse:
+    items, total = search_assets(
+        db,
+        q=q,
+        source_id=source_id,
+        asset_type=asset_type,
+        lifecycle_status=lifecycle_status,
+        owner=owner,
+        classification=classification,
+        tag=tag,
+        freshness_before=freshness_before,
+        limit=limit,
+        offset=offset,
+    )
+    record_audit_event(
+        db,
+        principal=principal,
+        action="asset.search",
+        resource_type="asset",
+        resource_id=None,
+        outcome="success",
+        request_id=request_id(request),
+        metadata={"query_present": q is not None, "result_count": total},
+    )
+    db.commit()
+    return AssetSearchResponse(items=items, total=total)
+
+
+@router.get("/{asset_id}", response_model=AssetRead)
+def get_asset(
+    asset_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(asset_reader),
+) -> Asset:
+    asset = get_asset_or_404(db, asset_id)
+    record_audit_event(
+        db,
+        principal=principal,
+        action="asset.read",
+        resource_type="asset",
+        resource_id=asset.id,
+        outcome="success",
+        request_id=request_id(request),
+    )
+    db.commit()
+    return asset
+
+
+@router.patch("/{asset_id}", response_model=AssetRead)
+def curate_asset(
+    asset_id: str,
+    payload: AssetCurationUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_current_principal),
+    idempotency: IdempotencyContext | None = Depends(get_idempotency_context),
+) -> Asset | Response:
+    replay = replay_response(db, idempotency)
+    if replay:
+        return replay
+    asset = get_asset_or_404(db, asset_id)
+    if not can_curate_asset(principal, asset.owner):
+        record_audit_event(
+            db,
+            principal=principal,
+            action="asset.curate",
+            resource_type="asset",
+            resource_id=asset.id,
+            outcome="denied",
+            request_id=request_id(request),
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "forbidden", "message": "The current role cannot curate this asset."},
+        )
+    asset = update_asset_curation(db, asset, payload)
+    record_audit_event(
+        db,
+        principal=principal,
+        action="asset.curate",
+        resource_type="asset",
+        resource_id=asset.id,
+        outcome="success",
+        request_id=request_id(request),
+        metadata={"updated_fields": sorted(payload.model_dump(exclude_unset=True, exclude={"actor"}).keys())},
+    )
+    body = AssetRead.model_validate(asset).model_dump(mode="json")
+    store_response(db, idempotency, body, status.HTTP_200_OK)
+    return asset
