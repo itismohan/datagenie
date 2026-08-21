@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import text
 
-from app.api.v1 import assets, audit, governance, glossary, ingestion_jobs, operations, policy, search_index, sources
+from app.api.v1 import assets, audit, governance, glossary, ingestion_jobs, mcp_internal, operations, policy, search_index, sources
 from app.core.config import get_settings
 from app.core.error_tracking import configure_error_tracking
 from app.core.openapi import OPENAPI_TAGS, build_openapi
@@ -59,6 +59,7 @@ app.include_router(search_index.router, prefix=f"{settings.api_v1_prefix}/search
 app.include_router(operations.router, prefix=f"{settings.api_v1_prefix}/operations", tags=["Operations"])
 app.include_router(audit.router, prefix=f"{settings.api_v1_prefix}/audit-events", tags=["Audit events"])
 app.include_router(policy.router, prefix=f"{settings.api_v1_prefix}/policy", tags=["Policy decisions"])
+app.include_router(mcp_internal.router, prefix=f"{settings.api_v1_prefix}/internal/mcp", include_in_schema=False)
 
 
 @app.middleware("http")

@@ -10,3 +10,7 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["catalog-api:8000"]
+  - job_name: datagenie-mcp-gateway
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["mcp-gateway:8000"]

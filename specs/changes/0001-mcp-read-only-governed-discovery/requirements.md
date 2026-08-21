@@ -1,6 +1,6 @@
 # Requirements: 0001-mcp-read-only-governed-discovery — MCP Read-Only Governed Discovery
 
-**Status:** Draft
+**Status:** Implementing
 **Source proposal:** [proposal.md](proposal.md)
 **Domain specifications:** `specs/platform/tenant-isolation.md`, `specs/domains/governance-approval.md`, `specs/domains/quality-evidence.md`, `specs/platform/api-compatibility.md`
 
@@ -48,22 +48,22 @@ The gateway SHALL expose `get_quality_evidence` as a read-only tool/resource tha
 
 The gateway SHALL expose `analyze_lineage_impact` as a bounded read-only tool that returns typed upstream/downstream impact with provenance, confidence, timestamps, depth/result limits and owner/consumer context subject to tenant and authorization policy.
 
-### Requirement: DG-MCP-READ-006 — Data-use policy check
+### Requirement: DG-MCP-READ-006 — Shared policy evidence binding
 
-The gateway SHALL expose `check_data_use_policy` as a read-only tool that evaluates a caller-declared use purpose against the tenant-bound asset, classification, certification, ownership, retention and governance policy context. It SHALL return an explainable `allow`, `deny`, or `allow_with_obligations` result with rule/evidence references and SHALL NOT create or alter a governance approval, certification, retention setting, export, or consent record.
+The gateway SHALL evaluate the existing catalog policy interface for each tenant-bound asset access and include the resulting policy outcome, rule/evidence references, obligations and expiry in the structured tool result. The internal beta SHALL expose exactly four MCP tools and SHALL NOT expose a separate `check_data_use_policy` tool. A policy decision never creates or alters governance approval, certification, retention, export, or consent state.
 
-##### Acceptance scenario: Policy decision with obligations
+##### Acceptance scenario: Policy evidence with obligations
 
-- **GIVEN** a permitted analyst identifies an asset and a declared business purpose
-- **WHEN** the tool evaluates applicable policy
-- **THEN** it returns a decision, policy/rule references, classification, evidence freshness and applicable obligations
-- **AND** it writes an audit-safe decision packet bound to the active tenant and caller.
+- **GIVEN** a permitted analyst invokes a supported tool for a governed asset and a declared business purpose
+- **WHEN** the gateway evaluates the shared catalog policy interface
+- **THEN** it returns or enforces the policy outcome, rule references, evidence freshness and applicable obligations
+- **AND** it writes an audit-safe execution packet bound to the active tenant and caller.
 
 ##### Negative scenario: Policy decision cannot be proven
 
-- **GIVEN** policy evidence is unavailable, stale beyond a configured safety limit, or belongs to a different tenant
-- **WHEN** a caller requests a policy check
-- **THEN** the gateway fails closed with a correlated safe response and does not imply that use is approved.
+- **GIVEN** required policy evidence is unavailable, stale beyond a configured safety limit, or belongs to a different tenant
+- **WHEN** a caller invokes any supported asset tool
+- **THEN** the gateway fails closed with a correlated safe result and does not imply that access is approved.
 
 ### Requirement: DG-MCP-READ-007 — Evidence, policy and audit packet
 

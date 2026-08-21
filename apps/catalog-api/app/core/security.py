@@ -1,3 +1,8 @@
+import base64
+import hashlib
+import hmac
+import json
+import time
 from dataclasses import dataclass
 from typing import Callable
 
@@ -74,6 +79,49 @@ def _decode_principal(token: str, settings: Settings) -> Principal:
     if not roles or not roles.issubset(VALID_ROLES):
         raise _unauthorized("The access token contains unsupported roles.")
     return Principal(subject=subject, tenant_id=tenant_id.strip(), roles=roles)
+
+
+def get_mcp_delegated_principal(
+    request: Request,
+    settings: Settings = Depends(get_settings),
+) -> Principal:
+    """Verify the gateway-signed actor packet used only by dedicated private MCP routes."""
+    if not settings.mcp_gateway_service_identity_enabled:
+        raise _unauthorized("MCP service delegation is not enabled.")
+    service_id = request.headers.get("X-DataGenie-Service-Id")
+    timestamp = request.headers.get("X-DataGenie-Service-Timestamp")
+    context_b64 = request.headers.get("X-DataGenie-Service-Actor")
+    signature = request.headers.get("X-DataGenie-Service-Signature")
+    if not all([service_id, timestamp, context_b64, signature]):
+        raise _unauthorized("A complete MCP service identity packet is required.")
+    if not hmac.compare_digest(service_id, settings.mcp_gateway_service_id):
+        raise _unauthorized("The calling service is not trusted.")
+    try:
+        timestamp_int = int(timestamp)
+        if abs(int(time.time()) - timestamp_int) > settings.mcp_gateway_service_max_skew_seconds:
+            raise ValueError("expired")
+        signing_input = f"{timestamp}\n{request.method}\n{request.url.path}\n{context_b64}".encode()
+        expected = hmac.new(settings.mcp_gateway_service_secret_value().encode(), signing_input, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, signature):
+            raise ValueError("signature")
+        padded = context_b64 + "=" * (-len(context_b64) % 4)
+        context = json.loads(base64.urlsafe_b64decode(padded.encode()))
+        subject = context.get("subject")
+        tenant_id = context.get("tenant_id")
+        roles = context.get("roles")
+        if not isinstance(subject, str) or not subject or not isinstance(tenant_id, str) or not tenant_id:
+            raise ValueError("identity")
+        if not isinstance(roles, list) or not all(isinstance(role, str) and role in VALID_ROLES for role in roles):
+            raise ValueError("roles")
+    except Exception as exc:
+        raise _unauthorized("The MCP service identity packet is invalid or expired.") from exc
+    principal = Principal(subject=subject, tenant_id=tenant_id, roles=frozenset(roles))
+    request.state.principal = principal
+    set_current_tenant_id(principal.tenant_id)
+    session = getattr(request.state, "db", None)
+    if session is not None:
+        session.info["tenant_id"] = principal.tenant_id
+    return principal
 
 
 def get_current_principal(

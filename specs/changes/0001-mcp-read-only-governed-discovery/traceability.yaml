@@ -1,6 +1,6 @@
 change_id: "0001-mcp-read-only-governed-discovery"
 title: "MCP read-only governed discovery pilot"
-status: draft
+status: "implementing"
 owners:
   product: "Product owner (TBD)"
   technical: "Solution architect (TBD)"
@@ -12,90 +12,91 @@ requirements:
     implementation:
       - "apps/mcp-gateway/app/security/identity.py"
       - "apps/mcp-gateway/app/core/tenant_context.py"
+      - "apps/mcp-gateway/app/server.py"
     tests:
-      - "apps/mcp-gateway/tests/test_identity.py::test_tenant_is_derived_from_validated_token"
-      - "apps/mcp-gateway/tests/test_identity.py::test_cross_tenant_input_is_rejected"
+      - "apps/mcp-gateway/tests/test_transport.py::test_adversarial_identity_and_input_attempts_do_not_leak_results"
+      - "apps/mcp-gateway/tests/test_transport.py::test_rejects_unapproved_host_origin_and_protocol"
     contracts:
-      - "contracts/mcp-governed-discovery.schema.json"
+      - "contracts.md#authentication-and-authorization"
     observability:
-      - "mcp_policy_decisions_total"
-      - "mcp_tenant_boundary_violations_total"
+      - "datagenie_mcp_tenant_boundary_violations_total"
     evidence:
       - "evidence.md#test-evidence"
-      - "evidence.md#operational-evidence"
   - id: "DG-MCP-READ-002"
     statement: "The gateway SHALL provide bounded tenant-visible governed asset discovery with policy and provenance evidence."
     implementation:
-      - "apps/mcp-gateway/app/tools/governed_search.py"
-      - "apps/mcp-gateway/app/clients/catalog.py"
+      - "apps/mcp-gateway/app/services/tool_execution.py"
+      - "apps/mcp-gateway/app/clients/datagenie.py"
+      - "apps/catalog-api/app/api/v1/mcp_internal.py"
     tests:
-      - "apps/mcp-gateway/tests/test_governed_search.py::test_search_returns_only_tenant_visible_assets"
-      - "apps/mcp-gateway/tests/test_governed_search.py::test_search_response_contains_governance_evidence"
+      - "apps/mcp-gateway/tests/test_jsonrpc_tools.py::test_all_remaining_read_tools_return_structured_evidence_packets"
     contracts:
-      - "contracts/mcp-governed-discovery.schema.json"
+      - "contracts.md#tools"
     observability:
-      - "mcp_tool_calls_total{tool=search_governed_assets}"
-      - "mcp_response_truncations_total"
+      - "datagenie_mcp_tool_calls_total"
+      - "datagenie_mcp_result_bytes"
     evidence:
       - "evidence.md#test-evidence"
   - id: "DG-MCP-READ-003"
     statement: "The gateway SHALL expose governed asset context without raw data, credentials, or unauthorized classified metadata."
     implementation:
-      - "apps/mcp-gateway/app/tools/asset_context.py"
-      - "apps/mcp-gateway/app/services/response_redaction.py"
+      - "apps/mcp-gateway/app/services/tool_execution.py"
+      - "apps/catalog-api/app/api/v1/mcp_internal.py"
     tests:
-      - "apps/mcp-gateway/tests/test_asset_context.py::test_context_redacts_restricted_fields"
-      - "apps/mcp-gateway/tests/test_asset_context.py::test_context_never_returns_source_secrets_or_rows"
+      - "apps/mcp-gateway/tests/test_tool_execution.py::test_asset_context_is_structured_policy_bound_redacted_and_ledgered"
+      - "apps/mcp-gateway/tests/test_jsonrpc_tools.py::test_tool_call_returns_structured_evidence_policy_obligations_and_redactions"
     contracts:
-      - "contracts/mcp-governed-discovery.schema.json"
+      - "contracts.md#common-response-and-errors"
     observability:
-      - "mcp_response_redactions_total"
+      - "datagenie_mcp_result_bytes"
     evidence:
       - "evidence.md#test-evidence"
   - id: "DG-MCP-READ-004"
     statement: "The gateway SHALL return explainable quality evidence that distinguishes missing, stale, failed, and low-quality results."
     implementation:
-      - "apps/mcp-gateway/app/tools/quality_evidence.py"
-      - "apps/mcp-gateway/app/clients/quality.py"
+      - "apps/mcp-gateway/app/clients/datagenie.py"
+      - "apps/quality-api/app/api/v1/quality.py"
+      - "apps/quality-api/app/core/mcp_security.py"
     tests:
-      - "apps/mcp-gateway/tests/test_quality_evidence.py::test_quality_response_distinguishes_quality_states"
-      - "apps/mcp-gateway/tests/test_quality_evidence.py::test_quality_response_contains_rule_and_threshold_evidence"
+      - "apps/mcp-gateway/tests/test_jsonrpc_tools.py::test_all_remaining_read_tools_return_structured_evidence_packets"
+      - "apps/quality-api/tests/test_quality_api.py"
     contracts:
-      - "contracts/mcp-governed-discovery.schema.json"
+      - "contracts.md#tools"
     observability:
-      - "mcp_tool_calls_total{tool=get_quality_evidence}"
-      - "mcp_downstream_errors_total{dependency=quality}"
+      - "datagenie_mcp_tool_calls_total"
+      - "datagenie_mcp_errors_total"
     evidence:
       - "evidence.md#test-evidence"
   - id: "DG-MCP-READ-005"
     statement: "The gateway SHALL provide bounded tenant-scoped lineage impact with provenance, confidence, and durable fallback handling."
     implementation:
-      - "apps/mcp-gateway/app/tools/lineage_impact.py"
-      - "apps/mcp-gateway/app/services/impact_tasks.py"
+      - "apps/mcp-gateway/app/clients/datagenie.py"
+      - "apps/lineage-api/app/api/v1/lineage.py"
+      - "apps/lineage-api/app/core/mcp_security.py"
     tests:
-      - "apps/mcp-gateway/tests/test_lineage_impact.py::test_lineage_is_bounded_and_provenanced"
-      - "apps/mcp-gateway/tests/test_resilience.py::test_task_handle_is_bound_to_subject_and_tenant"
+      - "apps/mcp-gateway/tests/test_jsonrpc_tools.py::test_all_remaining_read_tools_return_structured_evidence_packets"
     contracts:
-      - "contracts/mcp-governed-discovery.schema.json"
+      - "contracts.md#tools"
     observability:
-      - "mcp_tool_duration_seconds{tool=analyze_lineage_impact}"
-      - "mcp_async_task_status_total"
+      - "datagenie_mcp_tool_duration_seconds"
+      - "datagenie_mcp_result_bytes"
     evidence:
       - "evidence.md#test-evidence"
       - "evidence.md#operational-evidence"
   - id: "DG-MCP-READ-006"
-    statement: "The gateway SHALL return a read-only, explainable tenant-bound data-use policy decision for an asset and declared purpose."
+    statement: "The gateway SHALL bind shared tenant-aware policy evidence and obligations to every governed asset tool result."
     implementation:
-      - "apps/mcp-gateway/app/tools/data_use_policy.py"
-      - "apps/mcp-gateway/app/clients/policy.py"
+      - "apps/mcp-gateway/app/clients/datagenie.py"
+      - "apps/mcp-gateway/app/services/tool_execution.py"
+      - "apps/catalog-api/app/api/v1/policy.py"
+      - "apps/catalog-api/app/core/policy.py"
     tests:
-      - "apps/mcp-gateway/tests/test_data_use_policy.py::test_policy_decision_contains_obligations_and_evidence"
-      - "apps/mcp-gateway/tests/test_data_use_policy.py::test_unproven_policy_evidence_fails_closed"
+      - "apps/mcp-gateway/tests/test_tool_execution.py::test_denied_policy_fails_closed_before_asset_retrieval_and_records_ledger"
+      - "apps/mcp-gateway/tests/test_jsonrpc_tools.py::test_tool_call_returns_structured_evidence_policy_obligations_and_redactions"
     contracts:
-      - "contracts/mcp-governed-discovery.schema.json"
+      - "contracts.md#common-response-and-errors"
     observability:
-      - "mcp_tool_calls_total{tool=check_data_use_policy}"
-      - "mcp_policy_decisions_total"
+      - "datagenie_mcp_policy_decisions_total"
     evidence:
       - "evidence.md#test-evidence"
       - "evidence.md#approval-record"
@@ -103,44 +104,46 @@ requirements:
     statement: "The gateway SHALL emit a minimized tenant-scoped agent execution record with policy and evidence correlation for every invocation."
     implementation:
       - "apps/mcp-gateway/app/services/execution_ledger.py"
-      - "apps/mcp-gateway/app/models/agent_execution.py"
+      - "apps/mcp-gateway/app/server.py"
+      - "apps/mcp-gateway/app/services/tool_execution.py"
     tests:
-      - "apps/mcp-gateway/tests/test_execution_ledger.py::test_every_tool_call_writes_minimized_tenant_ledger_record"
-      - "apps/mcp-gateway/tests/test_execution_ledger.py::test_ledger_excludes_tokens_and_raw_sensitive_content"
+      - "apps/mcp-gateway/tests/test_tool_execution.py::test_asset_context_is_structured_policy_bound_redacted_and_ledgered"
     contracts:
-      - "contracts/agent-execution-event.schema.json"
+      - "contracts.md#agent-execution-ledger"
     observability:
-      - "mcp_execution_ledger_write_failures_total"
+      - "datagenie_mcp_execution_ledger_write_failures_total"
     evidence:
       - "evidence.md#operational-evidence"
   - id: "DG-MCP-READ-008"
     statement: "Every MCP tool SHALL enforce documented schemas, authorization, limits, timeout, error, cancellation and recovery behavior."
     implementation:
-      - "apps/mcp-gateway/app/core/tool_execution.py"
       - "apps/mcp-gateway/app/core/rate_limit.py"
+      - "apps/mcp-gateway/app/services/tool_execution.py"
+      - "apps/mcp-gateway/app/server.py"
     tests:
-      - "apps/mcp-gateway/tests/test_resilience.py::test_timeout_rate_limit_and_downstream_error_are_bounded"
-      - "apps/mcp-gateway/tests/test_resilience.py::test_cancellation_and_task_polling_are_authorized"
+      - "apps/mcp-gateway/tests/test_transport.py::test_rejects_unapproved_host_origin_and_protocol"
+      - "apps/mcp-gateway/tests/test_jsonrpc_tools.py::test_global_kill_switch_disables_mcp_before_auth_or_dispatch"
     contracts:
-      - "contracts/mcp-governed-discovery.schema.json"
+      - "contracts.md#operational-constraints"
     observability:
-      - "mcp_tool_duration_seconds"
-      - "mcp_rate_limit_denials_total"
-      - "mcp_downstream_errors_total"
+      - "datagenie_mcp_tool_duration_seconds"
+      - "datagenie_mcp_rate_limit_denials_total"
+      - "datagenie_mcp_errors_total"
     evidence:
       - "evidence.md#operational-evidence"
   - id: "DG-MCP-READ-009"
     statement: "The initial MCP surface SHALL remain read-only and exclude mutation, export, secret, arbitrary SQL, and arbitrary HTTP capabilities."
     implementation:
       - "apps/mcp-gateway/app/server.py"
-      - "apps/mcp-gateway/app/tools/__init__.py"
+      - "apps/mcp-gateway/app/services/tool_execution.py"
     tests:
-      - "apps/mcp-gateway/tests/test_read_only_surface.py::test_only_approved_read_only_tools_are_advertised"
-      - "apps/mcp-gateway/tests/test_read_only_surface.py::test_mutation_and_execution_attempts_are_denied"
+      - "apps/mcp-gateway/tests/test_transport.py::test_metadata_capability_negotiation_and_four_tool_surface"
+      - "apps/mcp-gateway/tests/test_transport.py::test_adversarial_identity_and_input_attempts_do_not_leak_results"
     contracts:
-      - "contracts/mcp-governed-discovery.schema.json"
+      - "contracts.md#tools"
     observability:
-      - "mcp_tool_denials_total{reason=unsupported_or_mutating_action}"
+      - "datagenie_mcp_tool_calls_total"
+      - "datagenie_mcp_errors_total"
     evidence:
       - "evidence.md#test-evidence"
       - "evidence.md#approval-record"

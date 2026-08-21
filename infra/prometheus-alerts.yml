@@ -40,3 +40,55 @@ groups:
         annotations:
           summary: "Catalog API is rejecting more than five requests per second"
           runbook: "docs/launch-readiness-assessment.md#sequenced-launch-plan"
+
+  - name: datagenie-mcp-beta
+    rules:
+      - alert: DataGenieMcpGatewayUnavailable
+        expr: up{job="datagenie-mcp-gateway"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: mcp-gateway
+        annotations:
+          summary: "DataGenie MCP gateway target is unavailable"
+          runbook: "docs/mcp-beta-operations-dashboard.md#slo-evaluation-procedure"
+
+      - alert: DataGenieMcpLedgerWriteFailure
+        expr: increase(datagenie_mcp_execution_ledger_write_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: mcp-gateway
+        annotations:
+          summary: "MCP execution ledger persistence failed; beta traffic must fail closed"
+          runbook: "docs/mcp-beta-operations-dashboard.md#slo-evaluation-procedure"
+
+      - alert: DataGenieMcpTenantBoundaryViolation
+        expr: increase(datagenie_mcp_tenant_boundary_violations_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: mcp-gateway
+        annotations:
+          summary: "MCP tenant-boundary violation was observed"
+          runbook: "docs/mcp-beta-operations-dashboard.md#slo-evaluation-procedure"
+
+      - alert: DataGenieMcpElevatedErrorRate
+        expr: sum(rate(datagenie_mcp_errors_total[15m])) / clamp_min(sum(rate(datagenie_mcp_tool_calls_total[15m])), 0.001) > 0.01
+        for: 15m
+        labels:
+          severity: warning
+          service: mcp-gateway
+        annotations:
+          summary: "MCP beta error rate exceeds one percent"
+          runbook: "docs/mcp-beta-operations-dashboard.md#slo-evaluation-procedure"
+
+      - alert: DataGenieMcpP95ReadLatencyExceeded
+        expr: histogram_quantile(0.95, sum by (le, operation) (rate(datagenie_mcp_tool_duration_seconds_bucket[15m]))) > 5
+        for: 15m
+        labels:
+          severity: warning
+          service: mcp-gateway
+        annotations:
+          summary: "MCP beta p95 read-tool latency exceeds five seconds"
+          runbook: "docs/mcp-beta-operations-dashboard.md#slo-evaluation-procedure"

@@ -53,29 +53,22 @@
 | Side effect | None. |
 | Bounds | Node/edge count and depth limits; durable task for greater work. |
 
-### `check_data_use_policy`
-
-| Concern | Contract |
-|---|---|
-| Input | `asset_id`, declared `purpose`, optional bounded `intended_consumers` and `retention_window`. |
-| Output | `allow`, `deny`, or `allow_with_obligations`; evaluated rule IDs, evidence references/freshness, classification, certification, retention and redaction indicators. |
-| Authorization | `policy:read`; tenant from token; asset/purpose policy check. |
-| Side effect | None; no governance approval, consent, retention, export or certification mutation. |
-| Bounds | One asset and one declared purpose; policy decision expires at documented evidence/policy TTL. |
-
 ## Resources and prompts
 
 | Primitive | Identifier | Contract |
 |---|---|---|
 | Resource | `datagenie://catalog/assets/{asset_id}` | Principal-specific governed asset context; never shared-cache across tenants. |
+| Resource | `datagenie://catalog/domains/{domain_id}` | Tenant-scoped domain ownership and stewardship summary. |
+| Resource | `datagenie://policy/assets/{asset_id}` | Shared-policy outcome, obligations, expiry and evidence for a supplied declared purpose. |
 | Resource | `datagenie://quality/assets/{asset_id}/latest` | Latest explainable quality evidence with freshness state. |
 | Resource | `datagenie://lineage/assets/{asset_id}` | Bounded typed lineage summary. |
-| Prompt | `assess_data_for_use` | Requires asset/business intent and purpose; produces evidence-cited decision support, no mutation. |
-| Prompt | `explain_lineage_impact` | Requires asset and analysis goal; produces a provenance/confidence-aware narrative. |
+| Prompt | `assess_data_for_use` | Requires asset/business intent and purpose; produces a structured evidence-cited decision-support template, no mutation. |
+| Prompt | `explain_lineage_impact` | Requires asset and analysis goal; produces a structured provenance/confidence-aware analysis template. |
+| Prompt | `summarize_governed_asset` | Requires asset and audience; produces a structured summary template that preserves policy obligations and evidence references. |
 
 ## Common response and errors
 
-Every successful result includes `request_id`, `tool_version`, `tenant_bound: true`, `generated_at`, `policy`, `evidence`, and explicit `redactions`/`truncated` fields where relevant. Errors use stable code, safe message and request ID.
+Every successful result includes `request_id`, `tool_version`, `tenant_bound: true`, `generated_at`, `provenance`, `evidence`, `timestamp`, `policy`, `obligations`, `confidence`, and explicit `redactions`/`truncated` fields where relevant. Errors use stable code, safe message and request ID.
 
 | Code | Meaning | Client behavior |
 |---|---|---|

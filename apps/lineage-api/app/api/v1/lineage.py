@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
+from app.core.mcp_security import McpActor, require_mcp_gateway_actor
 from app.schemas.lineage import (
     ImpactAnalysisRead,
     ImpactRequest,
@@ -16,6 +17,17 @@ router = APIRouter()
 @router.post("/events", status_code=status.HTTP_201_CREATED)
 def ingest_event(payload: LineageEventCreate) -> dict:
     return ingest_lineage_event(payload)
+
+
+@router.get("/internal/mcp/{asset_id}", response_model=LineageGraphRead, include_in_schema=False)
+def fetch_mcp_lineage(
+    asset_id: str,
+    request: Request,
+    direction: str = Query(default="both", pattern="^(upstream|downstream|both)$"),
+    max_depth: int = Query(default=3, ge=1, le=3),
+    _actor: McpActor = Depends(require_mcp_gateway_actor),
+) -> dict:
+    return get_lineage(asset_id, direction=direction, max_depth=max_depth)
 
 
 @router.get("/{asset_id}", response_model=LineageGraphRead)

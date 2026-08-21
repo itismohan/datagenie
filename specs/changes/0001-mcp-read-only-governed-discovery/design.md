@@ -1,6 +1,6 @@
 # Design: 0001-mcp-read-only-governed-discovery — MCP Read-Only Governed Discovery
 
-**Status:** Draft
+**Status:** Implementing
 **Requirements:** [requirements.md](requirements.md)
 **Constitution review:** Pending approval
 
@@ -65,13 +65,15 @@ sequenceDiagram
 | Tool | `search_governed_assets` | `catalog:read` | None | Query/filter schema, max 50 results, no raw data. |
 | Tool | `get_asset_context` | `catalog:read` | None | One asset, bounded column metadata, classification-aware redaction. |
 | Tool | `get_quality_evidence` | `quality:read` | None | One asset/version, bounded run/incident history. |
-| Tool | `analyze_lineage_impact` | `lineage:read` | None | Depth/result limit; durable handle for expensive work. |
-| Tool | `check_data_use_policy` | `policy:read` | None | One tenant-bound asset/purpose decision; returns rules, obligations and freshness; no approval mutation. |
+| Tool | `analyze_lineage_impact` | `lineage:read` | None | Depth/result limit; tenant-visible graph only. |
 | Resource | `datagenie://catalog/assets/{asset_id}` | `catalog:read` | None | Principal-specific response; no shared cache. |
+| Resource | `datagenie://catalog/domains/{domain_id}` | `catalog:read` | None | Tenant-scoped ownership and stewardship summary. |
+| Resource | `datagenie://policy/assets/{asset_id}` | `catalog:read` | None | Shared policy evidence/obligation summary for a declared purpose. |
 | Resource | `datagenie://quality/assets/{asset_id}/latest` | `quality:read` | None | Explainable latest evidence only. |
 | Resource | `datagenie://lineage/assets/{asset_id}` | `lineage:read` | None | Bounded graph summary. |
-| Prompt | `assess_data_for_use` | Read scopes | None | Requires declared purpose; produces cited decision-support text. |
-| Prompt | `explain_lineage_impact` | `lineage:read` | None | Requires asset and depth/risk intention. |
+| Prompt | `assess_data_for_use` | Read scopes | None | Requires asset/business intent and purpose; returns structured decision-support template. |
+| Prompt | `explain_lineage_impact` | `lineage:read` | None | Requires asset and depth/risk intention; returns structured analysis template. |
+| Prompt | `summarize_governed_asset` | `catalog:read` | None | Requires asset/audience; returns structured context template. |
 
 Formal schemas live under `contracts/`. The gateway will advertise only approved read-only capabilities; it will not proxy unknown REST paths.
 
@@ -79,7 +81,7 @@ Formal schemas live under `contracts/`. The gateway will advertise only approved
 
 The gateway acts as an OAuth/OIDC resource server with MCP-specific token audience. It publishes protected-resource and authorization-server discovery metadata when remote authorization is enabled. It validates issuer, signature, expiry, audience, scopes and tenant claim before any domain invocation. The gateway uses a service identity downstream together with signed, tenant-bound actor context; it does not forward the host bearer token.
 
-Policy evaluation returns `allow`, `deny`, or `allow_with_obligations` with rule identifiers, evidence references and expiry. `check_data_use_policy` performs this evaluation as an explicit, read-only capability for one tenant-bound asset and declared purpose; it never persists an approval, certification or consent decision. The purpose parameter is required for decision-support prompts/tools where the response could be used for data-use selection. Every tool validates response redaction after downstream retrieval as defense in depth.
+Policy evaluation calls the shared catalog policy interface and returns `allow`, `deny`, `allow_with_obligations`, or `requires_human_approval` with rule identifiers, evidence references and expiry. The beta binds this result to each asset tool response rather than advertising a fifth policy tool; it never persists an approval, certification or consent decision. The purpose parameter is required for decision-support prompts/tools where the response could be used for data-use selection. Every tool validates response redaction after downstream retrieval as defense in depth.
 
 ## Agent execution ledger
 

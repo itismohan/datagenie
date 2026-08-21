@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     auth_oidc_jwks_url: str | None = None
     auth_oidc_role_claim: str = "roles"
     auth_tenant_claim: str = "tenant_id"
+    mcp_gateway_service_identity_enabled: bool = False
+    mcp_gateway_service_id: str = "mcp-gateway"
+    mcp_gateway_service_shared_secret: SecretStr | None = None
+    mcp_gateway_service_max_skew_seconds: int = 60
     tenant_isolation_enabled: bool = True
     tenant_default_id: str = "default"
     connector_redis_url: str | None = None
@@ -76,6 +80,8 @@ class Settings(BaseSettings):
                 raise ValueError("DATAGENIE_ERROR_TRACKING_DSN is required outside development.")
             if not self.webhook_allowed_hosts.strip():
                 raise ValueError("DATAGENIE_WEBHOOK_ALLOWED_HOSTS is required outside development.")
+            if self.mcp_gateway_service_identity_enabled and self.mcp_gateway_service_shared_secret is None:
+                raise ValueError("DATAGENIE_MCP_GATEWAY_SERVICE_SHARED_SECRET is required when MCP service delegation is enabled.")
         if not self.tenant_default_id.strip():
             raise ValueError("DATAGENIE_TENANT_DEFAULT_ID must not be empty.")
         if not 0.0 <= self.error_tracking_traces_sample_rate <= 1.0:
@@ -94,7 +100,14 @@ class Settings(BaseSettings):
             raise ValueError("DATAGENIE_RATE_LIMIT_WINDOW_SECONDS must be at least 1.")
         if self.rate_limit_enabled and not self.rate_limit_redis_url:
             raise ValueError("DATAGENIE_RATE_LIMIT_REDIS_URL is required when rate limiting is enabled.")
+        if self.mcp_gateway_service_max_skew_seconds < 1 or self.mcp_gateway_service_max_skew_seconds > 300:
+            raise ValueError("DATAGENIE_MCP_GATEWAY_SERVICE_MAX_SKEW_SECONDS must be between 1 and 300.")
         return self
+
+    def mcp_gateway_service_secret_value(self) -> str:
+        if self.mcp_gateway_service_shared_secret is None:
+            raise RuntimeError("MCP gateway service identity secret is not configured.")
+        return self.mcp_gateway_service_shared_secret.get_secret_value()
 
     def jwt_secret_value(self) -> str:
         if self.auth_jwt_secret is None:

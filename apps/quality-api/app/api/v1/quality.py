@@ -1,5 +1,10 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
+
+from app.core.mcp_security import McpActor, require_mcp_gateway_actor
 
 from app.core.config import get_settings
 from app.db.session import get_db
@@ -150,6 +155,87 @@ def create_incident_comment(
     incident_id: str, payload: IncidentCommentCreate, db: Session = Depends(get_db)
 ):
     return add_incident_comment(db, get_incident_or_404(db, incident_id), payload)
+
+
+@router.get("/internal/mcp/assets/{asset_id}/evidence", include_in_schema=False)
+def mcp_quality_evidence(
+    asset_id: str,
+    history_limit: int = Query(default=5, ge=1, le=10),
+    db: Session = Depends(get_db),
+    _actor: McpActor = Depends(require_mcp_gateway_actor),
+) -> dict:
+    runs = list(
+        db.scalars(
+            select(QualityRun)
+            .where(QualityRun.asset_id == asset_id)
+            .options(selectinload(QualityRun.results))
+            .order_by(QualityRun.completed_at.desc(), QualityRun.queued_at.desc())
+            .limit(history_limit)
+        ).unique()
+    )
+    incidents = list(
+        db.scalars(
+            select(QualityIncident)
+            .where(QualityIncident.asset_id == asset_id)
+            .order_by(QualityIncident.last_seen_at.desc())
+            .limit(history_limit)
+        )
+    )
+    latest = runs[0] if runs else None
+    now = datetime.now(timezone.utc)
+    if latest is None:
+        state = "missing"
+    elif latest.status.value == "failed":
+        state = "failed"
+    elif not latest.explainable or latest.completed_at is None:
+        state = "unexplained"
+    else:
+        completed = latest.completed_at if latest.completed_at.tzinfo else latest.completed_at.replace(tzinfo=timezone.utc)
+        state = "stale" if (now - completed).total_seconds() > get_settings().quality_recency_hours * 3600 else "current"
+    return {
+        "asset_id": asset_id,
+        "state": state,
+        "latest_technical_score": latest.technical_score if latest else None,
+        "latest_explainable_at": latest.completed_at.isoformat() if latest and latest.explainable and latest.completed_at else None,
+        "runs": [
+            {
+                "id": run.id,
+                "status": run.status.value,
+                "trigger": run.trigger.value,
+                "technical_score": run.technical_score,
+                "explainable": run.explainable,
+                "completed_at": run.completed_at.isoformat() if run.completed_at else None,
+                "effective_rule_versions": run.effective_rule_versions,
+                "results": [
+                    {
+                        "rule_id": result.rule_id,
+                        "rule_version": result.rule_version,
+                        "rule_type": result.rule_type.value,
+                        "column_name": result.column_name,
+                        "evaluated": result.evaluated,
+                        "passed": result.passed,
+                        "score": result.score,
+                        "expected_value": result.expected_value,
+                        "evaluated_at": result.evaluated_at.isoformat(),
+                    }
+                    for result in run.results
+                ],
+            }
+            for run in runs
+        ],
+        "incidents": [
+            {
+                "id": incident.id,
+                "status": incident.status.value,
+                "severity": incident.severity.value,
+                "first_seen_at": incident.first_seen_at.isoformat(),
+                "last_seen_at": incident.last_seen_at.isoformat(),
+                "resolved_at": incident.resolved_at.isoformat() if incident.resolved_at else None,
+            }
+            for incident in incidents
+        ],
+        "evidence": [{"type": "quality_run", "reference": f"quality:asset:{asset_id}"}],
+    }
 
 
 @router.get("/metrics/critical-coverage", response_model=CriticalCoverageMetric)
