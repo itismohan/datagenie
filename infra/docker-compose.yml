@@ -96,6 +96,11 @@ services:
     depends_on:
       neo4j:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
     networks: [datagenie-internal]
 
   quality-migrate:
@@ -163,6 +168,11 @@ services:
       dockerfile: infra/Dockerfile.python-api
       args:
         SERVICE_DIR: apps/search-api
+    environment:
+      DATAGENIE_CATALOG_API_URL: http://catalog-api:8000
+    depends_on:
+      catalog-api:
+        condition: service_healthy
     networks: [datagenie-internal]
 
   prometheus:

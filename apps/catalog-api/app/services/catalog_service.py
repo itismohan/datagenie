@@ -7,6 +7,11 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.catalog import (
     Asset,
     AssetMetadataVersion,
+    BusinessGlossaryTerm,
+    GlossaryAssetMapping,
+    GlossaryStatus,
+    GovernanceDomain,
+    ReviewStatus,
     ChangeSource,
     DataSource,
     IngestionJob,
@@ -114,13 +119,43 @@ def search_assets(
     classification: str | None,
     tag: str | None,
     freshness_before: datetime | None,
-    limit: int,
-    offset: int,
+    domain: str | None = None,
+    business_term: str | None = None,
+    quality_min: int | None = None,
+    explainable_quality_only: bool = False,
+    limit: int = 50,
+    offset: int = 0,
 ) -> tuple[list[Asset], int]:
     filters = []
-    if q:
-        pattern = f"%{q.strip()}%"
-        filters.append(or_(Asset.name.ilike(pattern), Asset.qualified_name.ilike(pattern), Asset.description.ilike(pattern), Asset.technical_description.ilike(pattern)))
+    q_normalized = q.strip().lower() if q else None
+    term_ids: set[str] = set()
+    if business_term or q_normalized:
+        term_pattern = f"%{(business_term or q_normalized).strip()}%"
+        approved_term_ids = select(BusinessGlossaryTerm.id).where(
+            BusinessGlossaryTerm.name.ilike(term_pattern),
+            BusinessGlossaryTerm.status == GlossaryStatus.APPROVED,
+        )
+        term_ids = set(
+            db.scalars(
+                select(GlossaryAssetMapping.asset_id).where(
+                    GlossaryAssetMapping.term_id.in_(approved_term_ids),
+                    GlossaryAssetMapping.status == ReviewStatus.APPROVED,
+                )
+            )
+        )
+    if q_normalized:
+        pattern = f"%{q_normalized}%"
+        filters.append(
+            or_(
+                Asset.name.ilike(pattern),
+                Asset.qualified_name.ilike(pattern),
+                Asset.description.ilike(pattern),
+                Asset.technical_description.ilike(pattern),
+                Asset.id.in_(term_ids) if term_ids else False,
+            )
+        )
+    elif business_term:
+        filters.append(Asset.id.in_(term_ids) if term_ids else False)
     if source_id:
         filters.append(Asset.source_id == source_id)
     if asset_type:
@@ -130,26 +165,66 @@ def search_assets(
     if owner:
         filters.append(Asset.owner == owner)
     if classification:
-        filters.append(Asset.classification == classification)
+        filters.append(Asset.classification.ilike(f"%{classification.strip()}%"))
+    if domain:
+        filters.append(Asset.domain.has(GovernanceDomain.name.ilike(f"%{domain.strip()}%")))
     if tag:
         # JSON containment differs between PostgreSQL and SQLite. Filtering in
-        # memory preserves consistent MVP behaviour across both supported dev stores.
+        # memory preserves consistent behaviour across supported local stores.
         filters.append(Asset.tags.is_not(None))
     if freshness_before:
         filters.append(or_(Asset.freshness_at.is_(None), Asset.freshness_at < freshness_before))
+    if quality_min is not None:
+        filters.append(Asset.quality_score >= quality_min)
+    if explainable_quality_only:
+        filters.append(Asset.quality_explainable_at.is_not(None))
 
     base: Select = select(Asset).where(*filters)
-    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     assets = list(
         db.scalars(
-            base.options(selectinload(Asset.columns), selectinload(Asset.metadata_versions))
+            base.options(selectinload(Asset.columns), selectinload(Asset.metadata_versions), selectinload(Asset.domain))
             .order_by(Asset.updated_at.desc(), Asset.name.asc())
-            .offset(offset)
-            .limit(limit)
         ).unique()
     )
     if tag:
         normalized = tag.strip().lower()
         assets = [asset for asset in assets if normalized in (asset.tags or [])]
-        total = len(assets)
-    return assets, total
+
+    def rank(asset: Asset) -> int:
+        score = 0
+        if q_normalized:
+            name = asset.name.lower()
+            qualified_name = asset.qualified_name.lower()
+            if name == q_normalized or qualified_name == q_normalized:
+                score += 100
+            elif name.startswith(q_normalized) or qualified_name.startswith(q_normalized):
+                score += 70
+            elif q_normalized in name or q_normalized in qualified_name:
+                score += 45
+            elif q_normalized in (asset.description or "").lower() or q_normalized in (asset.technical_description or "").lower():
+                score += 20
+            if asset.id in term_ids:
+                score += 40
+        if asset.lifecycle_status.value == "certified":
+            score += 25
+        if asset.description:
+            score += 10
+        if asset.owner:
+            score += 10
+        if asset.quality_score is not None and asset.quality_explainable_at is not None:
+            score += 10 + min(asset.quality_score // 20, 5)
+        updated_at = asset.updated_at
+        if updated_at.tzinfo is None:
+            updated_at = updated_at.replace(tzinfo=timezone.utc)
+        current_time = utc_now()
+        if updated_at >= current_time.replace(hour=0, minute=0, second=0, microsecond=0):
+            score += 8
+        elif updated_at >= current_time.replace(day=1, hour=0, minute=0, second=0, microsecond=0):
+            score += 4
+        return score
+
+    for asset in assets:
+        setattr(asset, "discovery_score", rank(asset))
+    assets.sort(key=lambda asset: (-getattr(asset, "discovery_score", 0), asset.name.lower()))
+    total = len(assets)
+    return assets[offset : offset + limit], total

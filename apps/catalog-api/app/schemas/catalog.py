@@ -116,7 +116,11 @@ class AssetRead(BaseModel):
     tags: list[str]
     owner: str | None
     classification: str | None
+    domain_id: str | None
+    quality_score: int | None
+    quality_explainable_at: datetime | None
     lifecycle_status: LifecycleStatus
+    discovery_score: int | None = None
     curated_at: datetime | None
     created_at: datetime
     updated_at: datetime
@@ -129,6 +133,7 @@ class AssetCurationUpdate(BaseModel):
     tags: list[str] | None = Field(default=None, max_length=50)
     owner: str | None = Field(default=None, max_length=255)
     classification: str | None = Field(default=None, max_length=100)
+    domain_id: str | None = None
     lifecycle_status: LifecycleStatus | None = None
     actor: str = Field(default="catalog-steward", min_length=1, max_length=255)
 

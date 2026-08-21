@@ -17,10 +17,11 @@ from app.core.security import (
     require_roles,
 )
 from app.db.session import get_db
-from app.models.catalog import Asset
+from app.models.catalog import Asset, DiscoveryEventType
 from app.schemas.catalog import AssetCurationUpdate, AssetRead, AssetSearchResponse
 from app.services.audit_service import record_audit_event
 from app.services.catalog_service import get_asset_or_404, search_assets, update_asset_curation
+from app.services.governance_service import record_discovery_event
 from app.services.idempotency_service import IdempotencyContext, get_idempotency_context, replay_response, store_response
 
 router = APIRouter()
@@ -42,6 +43,11 @@ def list_assets(
     classification: str | None = None,
     tag: str | None = None,
     freshness_before: datetime | None = None,
+    domain: str | None = None,
+    business_term: str | None = None,
+    quality_min: int | None = Query(default=None, ge=0, le=100),
+    explainable_quality_only: bool = False,
+    discovery_session_id: str | None = Query(default=None, min_length=1, max_length=128),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
@@ -57,9 +63,23 @@ def list_assets(
         classification=classification,
         tag=tag,
         freshness_before=freshness_before,
+        domain=domain,
+        business_term=business_term,
+        quality_min=quality_min,
+        explainable_quality_only=explainable_quality_only,
         limit=limit,
         offset=offset,
     )
+    if discovery_session_id:
+        record_discovery_event(
+            db,
+            discovery_session_id,
+            principal.subject,
+            DiscoveryEventType.SEARCH,
+            None,
+            q or business_term,
+            {"result_count": total},
+        )
     record_audit_event(
         db,
         principal=principal,
@@ -78,10 +98,21 @@ def list_assets(
 def get_asset(
     asset_id: str,
     request: Request,
+    discovery_session_id: str | None = Query(default=None, min_length=1, max_length=128),
     db: Session = Depends(get_db),
     principal: Principal = Depends(asset_reader),
 ) -> Asset:
     asset = get_asset_or_404(db, asset_id)
+    if discovery_session_id:
+        record_discovery_event(
+            db,
+            discovery_session_id,
+            principal.subject,
+            DiscoveryEventType.ASSET_VIEW,
+            asset.id,
+            None,
+            {},
+        )
     record_audit_event(
         db,
         principal=principal,

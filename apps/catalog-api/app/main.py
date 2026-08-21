@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import text
 
-from app.api.v1 import assets, audit, glossary, ingestion_jobs, sources
+from app.api.v1 import assets, audit, governance, glossary, ingestion_jobs, sources
 from app.core.config import get_settings
 from app.core.observability import REQUEST_COUNT, REQUEST_LATENCY, UNHANDLED_ERRORS, configure_logging
 from app.db.session import create_schema, engine
@@ -32,6 +32,7 @@ app.include_router(assets.router, prefix=f"{settings.api_v1_prefix}/assets", tag
 app.include_router(sources.router, prefix=f"{settings.api_v1_prefix}/sources", tags=["Sources"])
 app.include_router(ingestion_jobs.router, prefix=f"{settings.api_v1_prefix}/ingestion-jobs", tags=["Ingestion jobs"])
 app.include_router(glossary.router, prefix=f"{settings.api_v1_prefix}/glossary", tags=["Glossary"])
+app.include_router(governance.router, prefix=f"{settings.api_v1_prefix}/governance", tags=["Governance"])
 app.include_router(audit.router, prefix=f"{settings.api_v1_prefix}/audit-events", tags=["Audit events"])
 
 

@@ -36,14 +36,28 @@ def _forbidden(message: str) -> HTTPException:
 
 def _decode_principal(token: str, settings: Settings) -> Principal:
     try:
-        payload = jwt.decode(token, settings.jwt_secret_value(), algorithms=[settings.auth_jwt_algorithm])
+        if settings.auth_mode == "oidc":
+            if not settings.auth_oidc_jwks_url or not settings.auth_oidc_issuer or not settings.auth_oidc_audience:
+                raise _unauthorized("OIDC validation is not fully configured.")
+            signing_key = jwt.PyJWKClient(settings.auth_oidc_jwks_url).get_signing_key_from_jwt(token)
+            payload = jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["RS256", "RS384", "RS512"],
+                audience=settings.auth_oidc_audience,
+                issuer=settings.auth_oidc_issuer,
+            )
+        else:
+            payload = jwt.decode(token, settings.jwt_secret_value(), algorithms=[settings.auth_jwt_algorithm])
     except jwt.ExpiredSignatureError as exc:
         raise _unauthorized("The access token has expired.") from exc
     except jwt.InvalidTokenError as exc:
         raise _unauthorized("The access token is invalid.") from exc
+    except Exception as exc:
+        raise _unauthorized("The access token could not be validated.") from exc
 
     subject = payload.get("sub")
-    raw_roles = payload.get("roles", [])
+    raw_roles = payload.get(settings.auth_oidc_role_claim if settings.auth_mode == "oidc" else "roles", [])
     if not isinstance(subject, str) or not subject:
         raise _unauthorized("The access token is missing a subject.")
     if not isinstance(raw_roles, list) or not all(isinstance(role, str) for role in raw_roles):
