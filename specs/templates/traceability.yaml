@@ -1,0 +1,21 @@
+change_id: "{{CHANGE_ID}}"
+title: "{{TITLE}}"
+status: draft
+owners:
+  product: "{{PRODUCT_OWNER}}"
+  technical: "{{TECHNICAL_OWNER}}"
+  security: "{{SECURITY_OWNER}}"
+  operations: "{{OPERATIONS_OWNER}}"
+requirements:
+  - id: "DG-{{DOMAIN}}-001"
+    statement: "The system SHALL {{TESTABLE_BEHAVIOR}}."
+    implementation:
+      - "{{IMPLEMENTATION_PATH}}"
+    tests:
+      - "{{TEST_PATH}}::{{TEST_NAME}}"
+    contracts:
+      - "{{CONTRACT_PATH}}"
+    observability:
+      - "{{METRIC_OR_AUDIT_REFERENCE}}"
+    evidence:
+      - "evidence.md#requirement-completion"

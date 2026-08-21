@@ -6,6 +6,19 @@ on:
     branches: [main]
 
 jobs:
+  sdd-traceability:
+    name: SDD traceability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install SDD validation dependencies
+        run: pip install -r tools/requirements.txt
+      - name: Validate specification baseline and traceability
+        run: python tools/validate_sdd.py
+
   catalog-test-and-migrate:
     runs-on: ubuntu-latest
     services:

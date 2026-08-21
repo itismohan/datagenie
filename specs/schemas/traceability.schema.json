@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datagenie.example/specs/schemas/traceability.schema.json",
+  "title": "DataGenie SDD Change Traceability",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["change_id", "title", "status", "requirements"],
+  "properties": {
+    "change_id": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 160
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "in_review", "approved", "implementing", "released", "archived"]
+    },
+    "owners": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "product": {"type": "string", "minLength": 1},
+        "technical": {"type": "string", "minLength": 1},
+        "security": {"type": "string", "minLength": 1},
+        "operations": {"type": "string", "minLength": 1}
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "implementation", "tests", "evidence"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^DG-[A-Z][A-Z0-9_]*(?:-[A-Z][A-Z0-9_]*)*-[0-9]{3,}$"
+          },
+          "statement": {"type": "string", "minLength": 20},
+          "implementation": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 3}
+          },
+          "tests": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 3}
+          },
+          "contracts": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 3}
+          },
+          "observability": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 3}
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 3}
+          }
+        }
+      }
+    }
+  }
+}
