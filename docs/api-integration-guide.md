@@ -69,7 +69,7 @@ All platform errors use the following envelope:
 | `401` | `unauthorized` | Obtain a valid bearer token. |
 | `403` | `forbidden` | Do not retry; request the required role or ownership approval. |
 | `404` | Resource-specific not-found code | Treat as absent within the active tenant; do not infer another tenant’s existence. |
-| `409` | `job_not_retryable` | Re-read the resource state before choosing another action. |
+| `409` | `job_not_retryable` or `policy_requires_human_approval` | Re-read the resource state or use the documented eligible human approval workflow. |
 | `422` | `validation_error` | Correct the request using `details`. |
 | `429` | `rate_limit_exceeded` | Observe `Retry-After` and `RateLimit-*` headers with exponential backoff. |
 | `503` | `connector_queue_unavailable` or `rate_limit_unavailable` | Retry only after a bounded delay; preserve the request ID. |
@@ -86,6 +86,26 @@ curl --fail-with-body \
   -H "Authorization: Bearer ${DATAGENIE_TOKEN}" \
   "${DATAGENIE_BASE_URL}/api/v1/assets/?business_term=Revenue&domain=Finance&quality_min=90&explainable_quality_only=true"
 ```
+
+### Evaluate a governed policy decision
+
+`POST /api/v1/policy/decisions` evaluates a requested action against the authenticated caller, active tenant, current governed resource facts and an optional declared purpose. It does not execute the action. The service derives subject, roles and tenant from the bearer token; clients cannot supply tenant, role, outcome, rule, evidence or obligation overrides.
+
+```bash
+curl --fail-with-body -X POST \
+  -H "Authorization: Bearer ${DATAGENIE_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -H "X-Request-ID: policy-check-001" \
+  -d '{
+    "action": "asset.read",
+    "resource": {"resource_type": "asset", "resource_id": "<asset-id>"},
+    "purpose": "financial reporting analysis",
+    "context": {}
+  }' \
+  "${DATAGENIE_BASE_URL}/api/v1/policy/decisions"
+```
+
+The response is one of `allow`, `deny`, `allow_with_obligations`, or `requires_human_approval`. It includes stable rule identifiers, safe evidence references, obligations, decision expiry and the request ID. A decision with obligations or required approval is not an execution permission unless the calling channel can preserve those semantics. Protected complex routes use this same evaluator before acting; the future MCP adapter must call the same policy interface and cannot introduce a more permissive policy path.
 
 ### Register and ingest a source
 

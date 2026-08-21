@@ -1862,6 +1862,193 @@
         "title": "LifecycleStatus",
         "type": "string"
       },
+      "PolicyContext": {
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "workflow_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflow Id"
+          }
+        },
+        "title": "PolicyContext",
+        "type": "object"
+      },
+      "PolicyDecisionRead": {
+        "properties": {
+          "decision_version": {
+            "title": "Decision Version",
+            "type": "string"
+          },
+          "evaluated_at": {
+            "format": "date-time",
+            "title": "Evaluated At",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyEvidenceReference"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "obligations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Obligations",
+            "type": "array"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/PolicyOutcome"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "resource_visible": {
+            "title": "Resource Visible",
+            "type": "boolean"
+          },
+          "rule_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Rule Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "outcome",
+          "decision_version",
+          "rule_ids",
+          "evidence",
+          "obligations",
+          "evaluated_at",
+          "expires_at",
+          "request_id",
+          "resource_visible"
+        ],
+        "title": "PolicyDecisionRead",
+        "type": "object"
+      },
+      "PolicyDecisionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "maxLength": 128,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)+$",
+            "title": "Action",
+            "type": "string"
+          },
+          "context": {
+            "$ref": "#/components/schemas/PolicyContext"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purpose"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/PolicyResource"
+          }
+        },
+        "required": [
+          "action",
+          "resource"
+        ],
+        "title": "PolicyDecisionRequest",
+        "type": "object"
+      },
+      "PolicyEvidenceReference": {
+        "properties": {
+          "reference": {
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Reference",
+            "type": "string"
+          },
+          "type": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "reference"
+        ],
+        "title": "PolicyEvidenceReference",
+        "type": "object"
+      },
+      "PolicyOutcome": {
+        "enum": [
+          "allow",
+          "deny",
+          "allow_with_obligations",
+          "requires_human_approval"
+        ],
+        "title": "PolicyOutcome",
+        "type": "string"
+      },
+      "PolicyResource": {
+        "properties": {
+          "resource_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "resource_type": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "title": "Resource Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_type",
+          "resource_id"
+        ],
+        "title": "PolicyResource",
+        "type": "object"
+      },
       "RetentionPolicyRead": {
         "properties": {
           "active": {
@@ -2868,6 +3055,24 @@
                 }
               ],
               "title": "Discovery Session Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 3,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Purpose"
             }
           },
           {
@@ -7814,6 +8019,142 @@
         ]
       }
     },
+    "/api/v1/policy/decisions": {
+      "post": {
+        "description": "Return a deterministic, auditable policy decision without executing an action.",
+        "operationId": "evaluate_policy_decision_api_v1_policy_decisions_post",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyDecisionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "A valid bearer token is required.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A valid bearer token is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "The authenticated principal is not authorized for this operation.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The authenticated principal is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "rate_limit_exceeded": {
+                    "value": {
+                      "error": {
+                        "code": "rate_limit_exceeded",
+                        "message": "Too many requests. Retry after the supplied interval.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too many requests. Retry after the supplied interval."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "internal_error": {
+                    "value": {
+                      "error": {
+                        "code": "internal_error",
+                        "message": "An unexpected server error occurred.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "An unexpected server error occurred."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Evaluate Policy Decision",
+        "tags": [
+          "Policy decisions"
+        ]
+      }
+    },
     "/api/v1/search-index/reindex": {
       "post": {
         "description": "Rebuild only the active tenant's index; invoke during controlled maintenance windows.",
@@ -9376,6 +9717,10 @@
     {
       "description": "Tenant-scoped audit evidence available to platform administrators.",
       "name": "Audit events"
+    },
+    {
+      "description": "Deterministic tenant-aware authorization decisions with rules, evidence, obligations, and expiry.",
+      "name": "Policy decisions"
     },
     {
       "description": "Liveness and readiness probes. Metrics are deliberately excluded from the public schema.",

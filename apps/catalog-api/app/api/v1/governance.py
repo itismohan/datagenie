@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.policy import enforce_policy
 from app.core.security import (
     ROLE_ANALYST,
     ROLE_DATA_OWNER,
@@ -159,7 +160,16 @@ def get_classification_findings(asset_id: str, request: Request, db: Session = D
 
 @router.post("/classification-findings/{finding_id}/review", response_model=ClassificationFindingRead)
 def review_classification(finding_id: str, payload: ClassificationReview, request: Request, db: Session = Depends(get_db), principal: Principal = Depends(governance_editor)):
-    finding = review_finding(db, get_finding_or_404(db, finding_id), payload.status, payload.review_note, principal.subject)
+    finding_record = get_finding_or_404(db, finding_id)
+    enforce_policy(
+        db,
+        principal,
+        request,
+        action="classification.review",
+        resource_type="classification_finding",
+        resource_id=finding_record.id,
+    )
+    finding = review_finding(db, finding_record, payload.status, payload.review_note, principal.subject)
     audit(db, principal, request, "classification.review", "classification_finding", finding.id, {"status": finding.status.value})
     return finding
 
@@ -167,6 +177,14 @@ def review_classification(finding_id: str, payload: ClassificationReview, reques
 @router.put("/assets/{asset_id}/quality-evidence")
 def put_asset_quality_evidence(asset_id: str, payload: AssetQualityEvidenceUpdate, request: Request, db: Session = Depends(get_db), principal: Principal = Depends(governance_editor)):
     asset = get_asset_or_404(db, asset_id)
+    enforce_policy(
+        db,
+        principal,
+        request,
+        action="quality_evidence.update",
+        resource_type="asset",
+        resource_id=asset.id,
+    )
     asset.quality_score = payload.technical_score
     asset.quality_explainable_at = payload.explainable_at
     db.commit()
@@ -184,7 +202,16 @@ def request_certification(asset_id: str, payload: CertificationRequestCreate, re
 
 @router.post("/certification-requests/{certification_id}/decision", response_model=CertificationRequestRead)
 def decide_certification(certification_id: str, payload: CertificationRequestDecision, request: Request, db: Session = Depends(get_db), principal: Principal = Depends(governance_editor)):
-    certification = decide_certification_request(db, get_certification_request_or_404(db, certification_id), payload.status, payload.decision_note, principal.subject)
+    certification_record = get_certification_request_or_404(db, certification_id)
+    enforce_policy(
+        db,
+        principal,
+        request,
+        action="certification.decide",
+        resource_type="certification_request",
+        resource_id=certification_record.id,
+    )
+    certification = decide_certification_request(db, certification_record, payload.status, payload.decision_note, principal.subject)
     record_discovery_event(db, request_id(request), principal.subject, DiscoveryEventType.USAGE_DECISION, certification.asset_id, None, {"status": certification.status.value})
     audit(db, principal, request, "certification.decide", "certification_request", certification.id, {"status": certification.status.value})
     return certification

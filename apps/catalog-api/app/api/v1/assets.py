@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
+from app.core.policy import enforce_policy
 from app.core.security import (
     ROLE_ANALYST,
     ROLE_DATA_OWNER,
@@ -12,7 +13,6 @@ from app.core.security import (
     ROLE_PLATFORM_ADMIN,
     ROLE_READ_ONLY,
     Principal,
-    can_curate_asset,
     get_current_principal,
     require_roles,
 )
@@ -99,10 +99,20 @@ def get_asset(
     asset_id: str,
     request: Request,
     discovery_session_id: str | None = Query(default=None, min_length=1, max_length=128),
+    purpose: str | None = Query(default=None, min_length=3, max_length=500),
     db: Session = Depends(get_db),
     principal: Principal = Depends(asset_reader),
 ) -> Asset:
     asset = get_asset_or_404(db, asset_id)
+    enforce_policy(
+        db,
+        principal,
+        request,
+        action="asset.read",
+        resource_type="asset",
+        resource_id=asset.id,
+        purpose=purpose,
+    )
     if discovery_session_id:
         record_discovery_event(
             db,
@@ -139,21 +149,14 @@ def curate_asset(
     if replay:
         return replay
     asset = get_asset_or_404(db, asset_id)
-    if not can_curate_asset(principal, asset.owner):
-        record_audit_event(
-            db,
-            principal=principal,
-            action="asset.curate",
-            resource_type="asset",
-            resource_id=asset.id,
-            outcome="denied",
-            request_id=request_id(request),
-        )
-        db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": "forbidden", "message": "The current role cannot curate this asset."},
-        )
+    enforce_policy(
+        db,
+        principal,
+        request,
+        action="asset.curate",
+        resource_type="asset",
+        resource_id=asset.id,
+    )
     asset = update_asset_curation(db, asset, payload)
     record_audit_event(
         db,

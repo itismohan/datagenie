@@ -37,6 +37,7 @@ OPENAPI_TAGS = [
     {"name": "Search index", "description": "Persistent tenant-scoped index freshness, facets, and controlled reindex operations."},
     {"name": "Operations", "description": "Tenant-scoped exports, retention policies, webhook subscriptions, and delivery history."},
     {"name": "Audit events", "description": "Tenant-scoped audit evidence available to platform administrators."},
+    {"name": "Policy decisions", "description": "Deterministic tenant-aware authorization decisions with rules, evidence, obligations, and expiry."},
     {"name": "Platform health", "description": "Liveness and readiness probes. Metrics are deliberately excluded from the public schema."},
 ]
 

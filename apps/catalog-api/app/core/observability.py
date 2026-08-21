@@ -31,6 +31,26 @@ RATE_LIMIT_STORE_FAILURES = Counter(
     "Redis rate-limit store failures grouped by enforcement policy.",
     ["policy"],
 )
+POLICY_DECISIONS = Counter(
+    "datagenie_policy_decisions_total",
+    "Policy decisions grouped by stable action, outcome, and controlling rule family.",
+    ["action", "outcome", "rule_family"],
+)
+POLICY_DECISION_LATENCY = Histogram(
+    "datagenie_policy_decision_duration_seconds",
+    "Policy evaluation latency grouped by stable action.",
+    ["action"],
+)
+POLICY_AUDIT_WRITE_FAILURES = Counter(
+    "datagenie_policy_audit_write_failures_total",
+    "Policy audit persistence failures grouped by stable action.",
+    ["action"],
+)
+POLICY_TENANT_BOUNDARY_VIOLATIONS = Counter(
+    "datagenie_policy_tenant_boundary_violations_total",
+    "Policy tenant-context mismatches detected before protected evaluation.",
+    ["action"],
+)
 
 
 class JsonFormatter(logging.Formatter):

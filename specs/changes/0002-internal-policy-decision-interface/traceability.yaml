@@ -1,0 +1,118 @@
+change_id: "0002-internal-policy-decision-interface"
+title: "Shared deterministic internal policy decision interface"
+status: implementing
+owners:
+  product: "Product owner (TBD)"
+  technical: "Solution architect (TBD)"
+  security: "Security owner (TBD)"
+  operations: "SRE/on-call owner (TBD)"
+requirements:
+  - id: "DG-POLICY-001"
+    statement: "The catalog policy service SHALL expose one typed evaluate_access interface with server-derived tenant context."
+    implementation:
+      - "apps/catalog-api/app/services/policy_service.py"
+      - "apps/catalog-api/app/schemas/policy.py"
+    tests:
+      - "apps/catalog-api/tests/test_policy_api.py::test_policy_endpoint_returns_explainable_allow_and_minimized_audit"
+    contracts:
+      - "contracts.md#internal-request-contract"
+    observability:
+      - "policy_decisions_total"
+    evidence:
+      - "evidence.md#build-and-contract-evidence"
+  - id: "DG-POLICY-002"
+    statement: "Every evaluation SHALL return a structured explainable outcome with rules, evidence, obligations, expiry, version and correlation."
+    implementation:
+      - "apps/catalog-api/app/services/policy_service.py"
+      - "apps/catalog-api/app/schemas/policy.py"
+    tests:
+      - "apps/catalog-api/tests/test_policy_api.py::test_policy_endpoint_returns_explainable_allow_and_minimized_audit"
+    contracts:
+      - "contracts.md#response-contract"
+    observability:
+      - "policy_decisions_total"
+    evidence:
+      - "evidence.md#functional-and-security-evidence"
+  - id: "DG-POLICY-003"
+    statement: "The evaluator SHALL preserve tenant isolation and existing RBAC as a non-bypassable authorization baseline."
+    implementation:
+      - "apps/catalog-api/app/services/policy_service.py"
+      - "apps/catalog-api/app/core/policy.py"
+    tests:
+      - "apps/catalog-api/tests/test_policy_api.py::test_foreign_tenant_policy_resource_is_non_visible"
+      - "apps/catalog-api/tests/test_policy_api.py::test_policy_context_cannot_add_authority_or_tenant_override"
+    contracts:
+      - "contracts.md#internal-request-contract"
+    observability:
+      - "policy_tenant_boundary_violations_total"
+    evidence:
+      - "evidence.md#functional-and-security-evidence"
+  - id: "DG-POLICY-004"
+    statement: "The initial evaluator SHALL deterministically combine role, tenant, classification, lifecycle, owner or steward, quality freshness, purpose and action facts."
+    implementation:
+      - "apps/catalog-api/app/services/policy_service.py"
+    tests:
+      - "apps/catalog-api/tests/test_policy_matrix.py::test_role_tenant_asset_classification_purpose_action_matrix"
+    contracts:
+      - "contracts.md#initial-action-vocabulary"
+    observability:
+      - "policy_decisions_total{rule_family=*}"
+    evidence:
+      - "evidence.md#functional-and-security-evidence"
+  - id: "DG-POLICY-005"
+    statement: "Every policy evaluation SHALL emit a tenant-scoped credential-safe policy decision audit event."
+    implementation:
+      - "apps/catalog-api/app/services/policy_service.py"
+      - "apps/catalog-api/app/services/audit_service.py"
+    tests:
+      - "apps/catalog-api/tests/test_policy_api.py::test_policy_decision_audit_event_is_minimized_and_correlated"
+      - "apps/catalog-api/tests/test_policy_route_integration.py::test_policy_audit_failure_blocks_asset_curation"
+    contracts:
+      - "contracts.md#audit-event-contract"
+    observability:
+      - "policy_audit_write_failures_total"
+    evidence:
+      - "evidence.md#functional-and-security-evidence"
+      - "evidence.md#operational-evidence"
+  - id: "DG-POLICY-006"
+    statement: "Complex catalog REST operations SHALL invoke the shared evaluator before protected action execution."
+    implementation:
+      - "apps/catalog-api/app/api/v1/policy.py"
+      - "apps/catalog-api/app/api/v1/assets.py"
+      - "apps/catalog-api/app/api/v1/governance.py"
+    tests:
+      - "apps/catalog-api/tests/test_policy_route_integration.py::test_certification_route_stops_before_mutation_when_policy_requires_human_approval"
+    contracts:
+      - "contracts.md#rest-api-contract"
+    observability:
+      - "policy_decisions_total"
+    evidence:
+      - "evidence.md#functional-and-security-evidence"
+  - id: "DG-POLICY-007"
+    statement: "Future MCP policy checks SHALL use the same policy service semantics without a transport-specific authorization shortcut."
+    implementation:
+      - "apps/catalog-api/app/services/policy_service.py"
+      - "apps/catalog-api/app/services/policy_adapter.py"
+    tests:
+      - "apps/catalog-api/tests/test_policy_adapter.py::test_private_transport_adapter_matches_rest_policy_semantics"
+    contracts:
+      - "contracts.md#contract-inventory"
+    observability:
+      - "policy_decisions_total"
+    evidence:
+      - "evidence.md#functional-and-security-evidence"
+  - id: "DG-POLICY-008"
+    statement: "Automated tests SHALL prove the policy decision matrix, minimization, correlation, expiry and absence of MCP-specific shortcuts."
+    implementation:
+      - "apps/catalog-api/tests/test_policy_matrix.py"
+      - "apps/catalog-api/tests/test_policy_route_integration.py"
+    tests:
+      - "apps/catalog-api/tests/test_policy_matrix.py::test_role_tenant_asset_classification_purpose_action_matrix"
+      - "apps/catalog-api/tests/test_policy_adapter.py::test_private_transport_adapter_keeps_foreign_tenant_resource_non_visible"
+    contracts:
+      - "test-plan.md#core-decision-matrix"
+    observability:
+      - "policy_decisions_total"
+    evidence:
+      - "evidence.md#functional-and-security-evidence"
+      - "evidence.md#operational-evidence"
