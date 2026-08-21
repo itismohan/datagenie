@@ -43,6 +43,10 @@ jobs:
         run: alembic upgrade head && alembic current
       - name: Run catalog tests
         run: pytest -q
+      - name: Verify committed OpenAPI contract
+        run: |
+          python scripts/export_openapi.py
+          git -C ../.. diff --exit-code -- docs/openapi/catalog-api-v1.json
 
   service-unit-tests:
     name: ${{ matrix.service }} tests

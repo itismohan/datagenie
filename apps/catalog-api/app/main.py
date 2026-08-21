@@ -13,6 +13,7 @@ from sqlalchemy import text
 from app.api.v1 import assets, audit, governance, glossary, ingestion_jobs, operations, search_index, sources
 from app.core.config import get_settings
 from app.core.error_tracking import configure_error_tracking
+from app.core.openapi import OPENAPI_TAGS, build_openapi
 from app.core.observability import (
     RATE_LIMIT_REJECTIONS,
     RATE_LIMIT_STORE_FAILURES,
@@ -37,7 +38,18 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title=settings.app_name, version="0.3.0", lifespan=lifespan)
+app = FastAPI(
+    title=settings.app_name,
+    version="1.0.0",
+    summary="Tenant-isolated metadata governance and discovery platform",
+    description="Interactive documentation and the versioned OpenAPI contract are available under `/api`.",
+    openapi_url="/api/openapi.json",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_tags=OPENAPI_TAGS,
+    lifespan=lifespan,
+)
+app.openapi = lambda: build_openapi(app)
 app.include_router(assets.router, prefix=f"{settings.api_v1_prefix}/assets", tags=["Assets"])
 app.include_router(sources.router, prefix=f"{settings.api_v1_prefix}/sources", tags=["Sources"])
 app.include_router(ingestion_jobs.router, prefix=f"{settings.api_v1_prefix}/ingestion-jobs", tags=["Ingestion jobs"])
@@ -159,17 +171,17 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     )
 
 
-@app.get("/health", tags=["Operations"])
+@app.get("/health", tags=["Platform health"], summary="Compatibility health probe")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/health/live", tags=["Operations"])
+@app.get("/health/live", tags=["Platform health"], summary="Process liveness probe")
 def liveness() -> dict[str, str]:
     return {"status": "live"}
 
 
-@app.get("/health/ready", tags=["Operations"])
+@app.get("/health/ready", tags=["Platform health"], summary="Database readiness probe")
 def readiness() -> dict[str, str]:
     try:
         with engine.connect() as connection:
