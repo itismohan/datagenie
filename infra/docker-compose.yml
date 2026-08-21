@@ -51,6 +51,7 @@ services:
       DATAGENIE_AUTH_ENABLED: ${DATAGENIE_AUTH_ENABLED:-true}
       DATAGENIE_RATE_LIMIT_ENABLED: "true"
       DATAGENIE_RATE_LIMIT_REDIS_URL: redis://redis:6379/1
+      DATAGENIE_CONNECTOR_REDIS_URL: redis://redis:6379/2
     command: ["alembic", "upgrade", "head"]
     depends_on:
       postgres:
@@ -67,18 +68,54 @@ services:
       DATAGENIE_AUTH_ENABLED: ${DATAGENIE_AUTH_ENABLED:-true}
       DATAGENIE_RATE_LIMIT_ENABLED: "true"
       DATAGENIE_RATE_LIMIT_REDIS_URL: redis://redis:6379/1
+      DATAGENIE_CONNECTOR_REDIS_URL: redis://redis:6379/2
     depends_on:
       catalog-migrate:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready')\""]
       interval: 10s
       timeout: 5s
       retries: 12
+    networks: [datagenie-internal]
+
+  catalog-worker:
+    build:
+      context: ../apps/catalog-api
+    env_file: ../.env
+    environment:
+      DATAGENIE_DATABASE_URL: postgresql+psycopg://${DATAGENIE_POSTGRES_USER:-datagenie}:${DATAGENIE_POSTGRES_PASSWORD:?Set DATAGENIE_POSTGRES_PASSWORD in .env}@postgres:5432/${DATAGENIE_POSTGRES_DB:-datagenie}
+      DATAGENIE_AUTH_ENABLED: ${DATAGENIE_AUTH_ENABLED:-true}
+      DATAGENIE_RATE_LIMIT_ENABLED: "true"
+      DATAGENIE_RATE_LIMIT_REDIS_URL: redis://redis:6379/1
+      DATAGENIE_CONNECTOR_REDIS_URL: redis://redis:6379/2
+    command: ["celery", "-A", "app.workers.celery_app.celery", "worker", "--loglevel=INFO", "--queues=connectors"]
+    depends_on:
+      catalog-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    networks: [datagenie-internal]
+
+  ingress:
+    image: caddy:2.8-alpine
+    environment:
+      DATAGENIE_PUBLIC_HOSTNAME: ${DATAGENIE_PUBLIC_HOSTNAME:?Set DATAGENIE_PUBLIC_HOSTNAME in .env}
+      DATAGENIE_TLS_EMAIL: ${DATAGENIE_TLS_EMAIL:?Set DATAGENIE_TLS_EMAIL in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      catalog-api:
+        condition: service_healthy
     networks: [datagenie-internal]
 
   connector-api:
@@ -201,6 +238,8 @@ volumes:
   redis-data:
   neo4j-data:
   prometheus-data:
+  caddy-data:
+  caddy-config:
 
 networks:
   datagenie-internal:

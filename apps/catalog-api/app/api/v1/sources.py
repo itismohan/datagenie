@@ -10,6 +10,7 @@ from app.schemas.catalog import IngestionJobRead, IngestionRequest, SourceCreate
 from app.services.audit_service import record_audit_event
 from app.services.catalog_service import create_ingestion_job, create_source, get_source_or_404
 from app.services.idempotency_service import IdempotencyContext, get_idempotency_context, replay_response, store_response
+from app.workers.tasks import enqueue_connector_job
 from app.services.ingestion_service import get_connector, run_ingestion_job
 
 router = APIRouter()
@@ -186,29 +187,45 @@ def run_source_ingestion(
     principal: Principal = Depends(source_operator),
     idempotency: IdempotencyContext | None = Depends(get_idempotency_context),
 ) -> object:
-    """Create and execute an ingestion job through the stable job resource contract."""
+    """Persist and submit an ingestion job; connector work runs only in the worker queue."""
     replay = replay_response(db, idempotency)
     if replay:
         return replay
     source = get_source_or_404(db, source_id)
     job = create_ingestion_job(db, source, payload.sync_mode)
-    job = run_ingestion_job(db, job.id)
+    try:
+        job.task_id = enqueue_connector_job(job.id, principal.tenant_id)
+    except Exception as exc:
+        job.error_message = f"queue_submission_failed: {type(exc).__name__}"
+        db.commit()
+        record_audit_event(
+            db,
+            principal=principal,
+            action="ingestion_job.queue",
+            resource_type="ingestion_job",
+            resource_id=job.id,
+            outcome="failure",
+            request_id=request_id(request),
+            metadata={"source_id": source.id, "reason": type(exc).__name__},
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "connector_queue_unavailable", "message": "The ingestion job was recorded but could not be submitted to a worker."},
+        ) from exc
+
     record_audit_event(
         db,
         principal=principal,
-        action="ingestion_job.run",
+        action="ingestion_job.queue",
         resource_type="ingestion_job",
         resource_id=job.id,
-        outcome="success" if job.status.value == "succeeded" else "failure",
+        outcome="success",
         request_id=request_id(request),
-        metadata={
-            "source_id": source.id,
-            "job_status": job.status.value,
-            "requested_sync_mode": job.requested_sync_mode.value,
-            "effective_sync_mode": job.effective_sync_mode.value if job.effective_sync_mode else None,
-            "strategy": job.connector_strategy,
-        },
+        metadata={"source_id": source.id, "task_id": job.task_id, "requested_sync_mode": job.requested_sync_mode.value},
     )
+    db.commit()
+    db.refresh(job)
     body = IngestionJobRead.model_validate(job).model_dump(mode="json")
     store_response(db, idempotency, body, status.HTTP_201_CREATED)
     return job

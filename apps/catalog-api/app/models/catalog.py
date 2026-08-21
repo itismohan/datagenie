@@ -6,6 +6,9 @@ from typing import Any
 from sqlalchemy import JSON, Boolean, DateTime, Enum as SqlEnum, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from app.core.config import get_settings
+from app.core.tenant import get_current_tenant_id
+
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -17,6 +20,16 @@ def uuid_str() -> str:
 
 class Base(DeclarativeBase):
     pass
+
+
+def tenant_id_default() -> str:
+    return get_current_tenant_id(get_settings().tenant_default_id)
+
+
+class TenantScoped:
+    """Mixin for data that must never be queried outside its tenant boundary."""
+
+    tenant_id: Mapped[str] = mapped_column(String(255), index=True, nullable=False, default=tenant_id_default)
 
 
 class SourceType(str, Enum):
@@ -41,6 +54,7 @@ class JobStatus(str, Enum):
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     CANCELLED = "cancelled"
+    DEAD_LETTER = "dead_letter"
 
 
 class AssetType(str, Enum):
@@ -95,6 +109,25 @@ class UsageDecisionStatus(str, Enum):
     REJECTED = "rejected"
 
 
+class RetentionResourceType(str, Enum):
+    AUDIT_EVENT = "audit_event"
+    DISCOVERY_EVENT = "discovery_event"
+    INGESTION_JOB = "ingestion_job"
+
+
+class WebhookEventType(str, Enum):
+    ASSET_UPDATED = "asset.updated"
+    INGESTION_COMPLETED = "ingestion.completed"
+    QUALITY_INCIDENT = "quality.incident"
+
+
+class WebhookDeliveryStatus(str, Enum):
+    PENDING = "pending"
+    DELIVERED = "delivered"
+    FAILED = "failed"
+    DEAD_LETTER = "dead_letter"
+
+
 class SuggestionType(str, Enum):
     DESCRIPTION = "description"
     GLOSSARY_MAPPING = "glossary_mapping"
@@ -104,7 +137,7 @@ class SuggestionType(str, Enum):
     QUALITY_RULE = "quality_rule"
 
 
-class DataSource(Base):
+class DataSource(TenantScoped, Base):
     __tablename__ = "data_sources"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
@@ -129,7 +162,7 @@ class DataSource(Base):
     )
 
 
-class IngestionJob(Base):
+class IngestionJob(TenantScoped, Base):
     __tablename__ = "ingestion_jobs"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
@@ -137,7 +170,11 @@ class IngestionJob(Base):
     status: Mapped[JobStatus] = mapped_column(SqlEnum(JobStatus), default=JobStatus.QUEUED, index=True, nullable=False)
     attempt_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     retry_of_job_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    task_id: Mapped[str | None] = mapped_column(String(255), index=True, nullable=True)
     cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    dead_lettered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     requested_sync_mode: Mapped[SyncMode] = mapped_column(
         SqlEnum(SyncMode), default=SyncMode.INCREMENTAL, nullable=False
     )
@@ -155,7 +192,7 @@ class IngestionJob(Base):
     source: Mapped[DataSource] = relationship(back_populates="ingestion_jobs")
 
 
-class SourceSyncState(Base):
+class SourceSyncState(TenantScoped, Base):
     __tablename__ = "source_sync_states"
 
     source_id: Mapped[str] = mapped_column(ForeignKey("data_sources.id", ondelete="CASCADE"), primary_key=True)
@@ -169,7 +206,7 @@ class SourceSyncState(Base):
     source: Mapped[DataSource] = relationship(back_populates="sync_state")
 
 
-class Asset(Base):
+class Asset(TenantScoped, Base):
     __tablename__ = "assets"
     __table_args__ = (
         UniqueConstraint("source_id", "asset_type", "qualified_name", name="uq_assets_source_type_qualified_name"),
@@ -211,7 +248,7 @@ class Asset(Base):
     )
 
 
-class AssetColumn(Base):
+class AssetColumn(TenantScoped, Base):
     __tablename__ = "asset_columns"
     __table_args__ = (UniqueConstraint("asset_id", "name", name="uq_asset_columns_asset_name"),)
 
@@ -229,7 +266,7 @@ class AssetColumn(Base):
     asset: Mapped[Asset] = relationship(back_populates="columns")
 
 
-class AssetMetadataVersion(Base):
+class AssetMetadataVersion(TenantScoped, Base):
     __tablename__ = "asset_metadata_versions"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
@@ -242,7 +279,60 @@ class AssetMetadataVersion(Base):
     asset: Mapped[Asset] = relationship(back_populates="metadata_versions")
 
 
-class AuditEvent(Base):
+class RetentionPolicy(TenantScoped, Base):
+    __tablename__ = "retention_policies"
+    __table_args__ = (UniqueConstraint("tenant_id", "resource_type", name="uq_retention_policies_tenant_resource"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
+    resource_type: Mapped[RetentionResourceType] = mapped_column(SqlEnum(RetentionResourceType), nullable=False)
+    retention_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    last_applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+
+class WebhookSubscription(TenantScoped, Base):
+    __tablename__ = "webhook_subscriptions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
+    event_type: Mapped[WebhookEventType] = mapped_column(SqlEnum(WebhookEventType), index=True, nullable=False)
+    target_url: Mapped[str] = mapped_column(String(2048), nullable=False)
+    secret_ref: Mapped[str] = mapped_column(String(1024), nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    failure_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+
+class WebhookDelivery(TenantScoped, Base):
+    __tablename__ = "webhook_deliveries"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
+    subscription_id: Mapped[str] = mapped_column(ForeignKey("webhook_subscriptions.id", ondelete="CASCADE"), index=True, nullable=False)
+    event_type: Mapped[WebhookEventType] = mapped_column(SqlEnum(WebhookEventType), index=True, nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    status: Mapped[WebhookDeliveryStatus] = mapped_column(SqlEnum(WebhookDeliveryStatus), default=WebhookDeliveryStatus.PENDING, index=True, nullable=False)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class SearchDocument(TenantScoped, Base):
+    __tablename__ = "search_documents"
+    __table_args__ = (UniqueConstraint("tenant_id", "asset_id", name="uq_search_documents_tenant_asset"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
+    asset_id: Mapped[str] = mapped_column(ForeignKey("assets.id", ondelete="CASCADE"), index=True, nullable=False)
+    document: Mapped[str] = mapped_column(Text, nullable=False)
+    facets: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    source_updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    indexed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class AuditEvent(TenantScoped, Base):
     __tablename__ = "audit_events"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
@@ -257,7 +347,7 @@ class AuditEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
 
-class IdempotencyRecord(Base):
+class IdempotencyRecord(TenantScoped, Base):
     __tablename__ = "idempotency_records"
     __table_args__ = (
         UniqueConstraint("principal_subject", "idempotency_key", "method", "path", name="uq_idempotency_principal_key_route"),
@@ -275,7 +365,7 @@ class IdempotencyRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
 
-class GovernanceDomain(Base):
+class GovernanceDomain(TenantScoped, Base):
     __tablename__ = "governance_domains"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
@@ -289,7 +379,7 @@ class GovernanceDomain(Base):
     assets: Mapped[list["Asset"]] = relationship(back_populates="domain")
 
 
-class BusinessGlossaryTerm(Base):
+class BusinessGlossaryTerm(TenantScoped, Base):
     __tablename__ = "business_glossary_terms"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
@@ -306,7 +396,7 @@ class BusinessGlossaryTerm(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 
 
-class GlossaryAssetMapping(Base):
+class GlossaryAssetMapping(TenantScoped, Base):
     __tablename__ = "glossary_asset_mappings"
     __table_args__ = (UniqueConstraint("term_id", "asset_id", "column_name", name="uq_glossary_asset_column"),)
 
@@ -321,7 +411,7 @@ class GlossaryAssetMapping(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
 
-class ClassificationFinding(Base):
+class ClassificationFinding(TenantScoped, Base):
     __tablename__ = "classification_findings"
     __table_args__ = (UniqueConstraint("asset_id", "column_name", "classification_type", name="uq_classification_asset_column_type"),)
 
@@ -340,7 +430,7 @@ class ClassificationFinding(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 
 
-class CertificationRequest(Base):
+class CertificationRequest(TenantScoped, Base):
     __tablename__ = "certification_requests"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
@@ -353,7 +443,7 @@ class CertificationRequest(Base):
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
-class DiscoveryEvent(Base):
+class DiscoveryEvent(TenantScoped, Base):
     __tablename__ = "discovery_events"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
@@ -366,7 +456,7 @@ class DiscoveryEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
 
-class GovernanceSuggestion(Base):
+class GovernanceSuggestion(TenantScoped, Base):
     __tablename__ = "governance_suggestions"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)

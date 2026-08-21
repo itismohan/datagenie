@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.config import Settings, get_settings
+from app.core.tenant import set_current_tenant_id
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -20,6 +21,7 @@ VALID_ROLES = {ROLE_PLATFORM_ADMIN, ROLE_DATA_STEWARD, ROLE_DATA_OWNER, ROLE_ANA
 @dataclass(frozen=True)
 class Principal:
     subject: str
+    tenant_id: str
     roles: frozenset[str]
 
     def has_any_role(self, *accepted_roles: str) -> bool:
@@ -57,15 +59,21 @@ def _decode_principal(token: str, settings: Settings) -> Principal:
         raise _unauthorized("The access token could not be validated.") from exc
 
     subject = payload.get("sub")
+    tenant_id = payload.get(settings.auth_tenant_claim)
     raw_roles = payload.get(settings.auth_oidc_role_claim if settings.auth_mode == "oidc" else "roles", [])
     if not isinstance(subject, str) or not subject:
         raise _unauthorized("The access token is missing a subject.")
+    if not isinstance(tenant_id, str) or not tenant_id.strip() or len(tenant_id) > 255:
+        if settings.environment == "development":
+            tenant_id = settings.tenant_default_id
+        else:
+            raise _unauthorized(f"The access token is missing a valid {settings.auth_tenant_claim} claim.")
     if not isinstance(raw_roles, list) or not all(isinstance(role, str) for role in raw_roles):
         raise _unauthorized("The access token contains invalid roles.")
     roles = frozenset(raw_roles)
     if not roles or not roles.issubset(VALID_ROLES):
         raise _unauthorized("The access token contains unsupported roles.")
-    return Principal(subject=subject, roles=roles)
+    return Principal(subject=subject, tenant_id=tenant_id.strip(), roles=roles)
 
 
 def get_current_principal(
@@ -76,11 +84,21 @@ def get_current_principal(
     if not settings.auth_enabled:
         # Local development only. Staging and production reject this configuration
         # during application startup through Settings validation.
-        return Principal(subject="local-development", roles=frozenset({ROLE_PLATFORM_ADMIN}))
+        principal = Principal(subject="local-development", tenant_id=settings.tenant_default_id, roles=frozenset({ROLE_PLATFORM_ADMIN}))
+        request.state.principal = principal
+        set_current_tenant_id(principal.tenant_id)
+        session = getattr(request.state, "db", None)
+        if session is not None:
+            session.info["tenant_id"] = principal.tenant_id
+        return principal
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise _unauthorized("A bearer token is required.")
     principal = _decode_principal(credentials.credentials, settings)
     request.state.principal = principal
+    set_current_tenant_id(principal.tenant_id)
+    session = getattr(request.state, "db", None)
+    if session is not None:
+        session.info["tenant_id"] = principal.tenant_id
     return principal
 
 

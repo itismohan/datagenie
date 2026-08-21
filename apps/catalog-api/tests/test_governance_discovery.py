@@ -84,7 +84,7 @@ def test_governance_workflows_are_reviewable_and_search_uses_approved_business_c
     mapping = create_mapping(db, term, asset.id, None, "analyst@example.com")
     review_mapping(db, mapping, ReviewStatus.APPROVED, "steward@example.com")
 
-    items, total = search_assets(
+    items, total, facets, index_fresh_at = search_assets(
         db,
         q="revenue",
         source_id=None,
@@ -102,6 +102,8 @@ def test_governance_workflows_are_reviewable_and_search_uses_approved_business_c
     assert total == 1
     assert items[0].id == asset.id
     assert items[0].discovery_score >= 90
+    assert isinstance(facets, dict)
+    assert index_fresh_at is None
 
     findings = detect_classifications(db, asset, "deterministic-classifier")
     assert {finding.classification_type.value for finding in findings} == {"email_address", "payment_data"}

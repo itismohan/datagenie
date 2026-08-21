@@ -10,8 +10,9 @@ from fastapi.responses import JSONResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import text
 
-from app.api.v1 import assets, audit, governance, glossary, ingestion_jobs, sources
+from app.api.v1 import assets, audit, governance, glossary, ingestion_jobs, operations, search_index, sources
 from app.core.config import get_settings
+from app.core.error_tracking import configure_error_tracking
 from app.core.observability import (
     RATE_LIMIT_REJECTIONS,
     RATE_LIMIT_STORE_FAILURES,
@@ -30,6 +31,7 @@ logger = logging.getLogger("datagenie.catalog")
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     configure_logging(settings.log_level)
+    configure_error_tracking(settings)
     if settings.environment == "development":
         create_schema()
     yield
@@ -41,6 +43,8 @@ app.include_router(sources.router, prefix=f"{settings.api_v1_prefix}/sources", t
 app.include_router(ingestion_jobs.router, prefix=f"{settings.api_v1_prefix}/ingestion-jobs", tags=["Ingestion jobs"])
 app.include_router(glossary.router, prefix=f"{settings.api_v1_prefix}/glossary", tags=["Glossary"])
 app.include_router(governance.router, prefix=f"{settings.api_v1_prefix}/governance", tags=["Governance"])
+app.include_router(search_index.router, prefix=f"{settings.api_v1_prefix}/search-index", tags=["Search index"])
+app.include_router(operations.router, prefix=f"{settings.api_v1_prefix}/operations", tags=["Operations"])
 app.include_router(audit.router, prefix=f"{settings.api_v1_prefix}/audit-events", tags=["Audit events"])
 
 

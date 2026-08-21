@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.connectors.base import DiscoveredAsset, DiscoveryResult, MetadataConnector
 from app.connectors.postgresql import PostgreSQLConnector
 from app.connectors.snowflake import SnowflakeConnector
+from app.services.search_index_service import index_asset
 from app.models.catalog import (
     Asset,
     AssetColumn,
@@ -142,6 +143,7 @@ def synchronize_discovery(db: Session, source: DataSource, discovered_assets: li
                     changed_fields={"created": {field: _public_value(value) for field, value in fields.items()}},
                 )
             )
+            index_asset(db, asset)
             stats["assets_created"] += 1
             continue
 
@@ -170,6 +172,7 @@ def synchronize_discovery(db: Session, source: DataSource, discovered_assets: li
             stats["assets_updated"] += 1
         else:
             stats["assets_unchanged"] += 1
+        index_asset(db, existing)
     return stats
 
 
@@ -208,13 +211,21 @@ def _apply_successful_discovery(
     job.completed_at = utc_now()
 
 
-def run_ingestion_job(db: Session, job_id: str) -> IngestionJob:
-    job = db.get(IngestionJob, job_id)
+def run_ingestion_job(db: Session, job_id: str, lease_seconds: int = 1_860) -> IngestionJob:
+    """Execute one durable job with a lease that permits recovery after a lost worker."""
+    job = db.scalar(select(IngestionJob).where(IngestionJob.id == job_id).with_for_update())
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ingestion job not found.")
+
+    now = utc_now()
+    if job.status in {JobStatus.SUCCEEDED, JobStatus.CANCELLED, JobStatus.DEAD_LETTER}:
+        return job
+    if job.status == JobStatus.RUNNING and job.lease_expires_at and job.lease_expires_at > now:
+        return job
     if job.status == JobStatus.CANCELLED or job.cancel_requested:
         job.status = JobStatus.CANCELLED
-        job.completed_at = utc_now()
+        job.completed_at = now
+        job.lease_expires_at = None
         db.commit()
         db.refresh(job)
         return job
@@ -222,15 +233,17 @@ def run_ingestion_job(db: Session, job_id: str) -> IngestionJob:
     source = db.get(DataSource, job.source_id)
     if not source:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Data source not found for ingestion job.")
-
     sync_state = _get_or_create_sync_state(db, source.id)
     job.cursor_before = dict(sync_state.cursor)
     job.status = JobStatus.RUNNING
     job.attempt_count += 1
-    job.started_at = utc_now()
+    job.started_at = now
+    job.lease_expires_at = now + timedelta(seconds=lease_seconds)
+    job.next_retry_at = None
     job.error_message = None
     job.warnings = []
     db.commit()
+
 
     try:
         connector = get_connector(source)
@@ -240,11 +253,14 @@ def run_ingestion_job(db: Session, job_id: str) -> IngestionJob:
         if job.cancel_requested:
             job.status = JobStatus.CANCELLED
             job.completed_at = utc_now()
+            job.lease_expires_at = None
             db.commit()
             db.refresh(job)
             return job
 
         _apply_successful_discovery(db, source, job, result)
+        job.lease_expires_at = None
+        job.next_retry_at = None
         db.commit()
     except Exception as exc:
         db.rollback()
@@ -253,6 +269,7 @@ def run_ingestion_job(db: Session, job_id: str) -> IngestionJob:
         if job:
             job.status = JobStatus.FAILED
             job.completed_at = utc_now()
+            job.lease_expires_at = None
             job.error_message = f"{type(exc).__name__}: {str(exc)[:500]}"
         if source:
             source.status = SourceStatus.ERROR

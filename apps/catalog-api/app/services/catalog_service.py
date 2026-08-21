@@ -19,8 +19,13 @@ from app.models.catalog import (
     SourceSyncState,
     SourceType,
     SyncMode,
+    SearchDocument,
+    WebhookEventType,
 )
 from app.schemas.catalog import AssetCurationUpdate, SourceCreate
+from app.services.operations_service import queue_webhook_deliveries
+from app.services.search_index_service import facet_counts, index_asset, index_freshness
+from app.workers.tasks import enqueue_webhook_delivery
 
 
 def utc_now() -> datetime:
@@ -103,7 +108,20 @@ def update_asset_curation(db: Session, asset: Asset, payload: AssetCurationUpdat
                 changed_fields=changed_fields,
             )
         )
+        db.flush()
+        index_asset(db, asset)
+        deliveries = queue_webhook_deliveries(
+            db,
+            WebhookEventType.ASSET_UPDATED,
+            {"asset_id": asset.id, "changed_fields": changed_fields, "updated_at": asset.updated_at.isoformat()},
+        )
         db.commit()
+        for delivery in deliveries:
+            try:
+                enqueue_webhook_delivery(delivery.id, asset.tenant_id)
+            except Exception:
+                # The durable pending outbox record remains available for an operator replay.
+                pass
         db.refresh(asset)
     return get_asset_or_404(db, asset.id)
 
@@ -125,9 +143,10 @@ def search_assets(
     explainable_quality_only: bool = False,
     limit: int = 50,
     offset: int = 0,
-) -> tuple[list[Asset], int]:
+) -> tuple[list[Asset], int, dict[str, dict[str, int]], datetime | None]:
     filters = []
     q_normalized = q.strip().lower() if q else None
+    indexed_document_ids: set[str] | None = None
     term_ids: set[str] = set()
     if business_term or q_normalized:
         term_pattern = f"%{(business_term or q_normalized).strip()}%"
@@ -145,15 +164,22 @@ def search_assets(
         )
     if q_normalized:
         pattern = f"%{q_normalized}%"
-        filters.append(
-            or_(
-                Asset.name.ilike(pattern),
-                Asset.qualified_name.ilike(pattern),
-                Asset.description.ilike(pattern),
-                Asset.technical_description.ilike(pattern),
-                Asset.id.in_(term_ids) if term_ids else False,
+        existing_documents = list(db.scalars(select(SearchDocument)))
+        if existing_documents:
+            indexed_document_ids = set(
+                db.scalars(select(SearchDocument.asset_id).where(SearchDocument.document.ilike(pattern)))
             )
-        )
+            filters.append(or_(Asset.id.in_(indexed_document_ids), Asset.id.in_(term_ids) if term_ids else False))
+        else:
+            filters.append(
+                or_(
+                    Asset.name.ilike(pattern),
+                    Asset.qualified_name.ilike(pattern),
+                    Asset.description.ilike(pattern),
+                    Asset.technical_description.ilike(pattern),
+                    Asset.id.in_(term_ids) if term_ids else False,
+                )
+            )
     elif business_term:
         filters.append(Asset.id.in_(term_ids) if term_ids else False)
     if source_id:
@@ -227,4 +253,6 @@ def search_assets(
         setattr(asset, "discovery_score", rank(asset))
     assets.sort(key=lambda asset: (-getattr(asset, "discovery_score", 0), asset.name.lower()))
     total = len(assets)
-    return assets[offset : offset + limit], total
+    asset_ids = [asset.id for asset in assets]
+    documents = list(db.scalars(select(SearchDocument).where(SearchDocument.asset_id.in_(asset_ids)))) if asset_ids else []
+    return assets[offset : offset + limit], total, facet_counts(documents), index_freshness(documents)

@@ -1,0 +1,12 @@
+{
+    email {$DATAGENIE_TLS_EMAIL:}
+}
+
+{$DATAGENIE_PUBLIC_HOSTNAME:localhost} {
+    encode zstd gzip
+
+    @api path /api/* /health /health/* /metrics
+    reverse_proxy @api catalog-api:8000
+
+    respond / "DataGenie ingress is online" 200
+}

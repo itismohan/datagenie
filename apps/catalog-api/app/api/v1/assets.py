@@ -53,7 +53,7 @@ def list_assets(
     db: Session = Depends(get_db),
     principal: Principal = Depends(asset_reader),
 ) -> AssetSearchResponse:
-    items, total = search_assets(
+    items, total, facets, index_fresh_at = search_assets(
         db,
         q=q,
         source_id=source_id,
@@ -91,7 +91,7 @@ def list_assets(
         metadata={"query_present": q is not None, "result_count": total},
     )
     db.commit()
-    return AssetSearchResponse(items=items, total=total)
+    return AssetSearchResponse(items=items, total=total, facets=facets, index_fresh_at=index_fresh_at)
 
 
 @router.get("/{asset_id}", response_model=AssetRead)

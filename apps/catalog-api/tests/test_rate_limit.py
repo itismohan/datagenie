@@ -123,6 +123,9 @@ def test_staging_requires_a_fail_closed_distributed_rate_limit_store():
         "database_url": "postgresql+psycopg://catalog:password@db.example/datagenie",
         "auth_enabled": True,
         "auth_jwt_secret": "test-jwt-secret-that-is-longer-than-thirty-two-characters",
+        "connector_redis_url": "redis://redis.example:6379/2",
+        "error_tracking_dsn": "https://public@example.invalid/1",
+        "webhook_allowed_hosts": "hooks.example.invalid",
     }
     with pytest.raises(ValidationError, match="RATE_LIMIT_ENABLED"):
         Settings(**common)

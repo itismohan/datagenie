@@ -27,6 +27,21 @@ class Settings(BaseSettings):
     auth_oidc_audience: str | None = None
     auth_oidc_jwks_url: str | None = None
     auth_oidc_role_claim: str = "roles"
+    auth_tenant_claim: str = "tenant_id"
+    tenant_isolation_enabled: bool = True
+    tenant_default_id: str = "default"
+    connector_redis_url: str | None = None
+    connector_task_always_eager: bool = False
+    connector_task_time_limit_seconds: int = 1_800
+    connector_task_soft_time_limit_seconds: int = 1_740
+    connector_max_retries: int = 3
+    connector_retry_backoff_seconds: int = 30
+    connector_lease_seconds: int = 1_860
+    error_tracking_dsn: str | None = None
+    error_tracking_traces_sample_rate: float = 0.1
+    webhook_allowed_hosts: str = ""
+    webhook_delivery_timeout_seconds: int = 10
+    webhook_max_retries: int = 5
     idempotency_ttl_seconds: int = 86_400
     request_id_header: str = "X-Request-ID"
     rate_limit_enabled: bool = False
@@ -53,6 +68,26 @@ class Settings(BaseSettings):
                 raise ValueError("DATAGENIE_RATE_LIMIT_REDIS_URL is required when rate limiting is enabled outside development.")
             if self.rate_limit_fail_open:
                 raise ValueError("DATAGENIE_RATE_LIMIT_FAIL_OPEN must be false outside development.")
+            if not self.tenant_isolation_enabled:
+                raise ValueError("DATAGENIE_TENANT_ISOLATION_ENABLED must be true outside development.")
+            if not self.connector_redis_url:
+                raise ValueError("DATAGENIE_CONNECTOR_REDIS_URL is required outside development for durable connector execution.")
+            if not self.error_tracking_dsn:
+                raise ValueError("DATAGENIE_ERROR_TRACKING_DSN is required outside development.")
+            if not self.webhook_allowed_hosts.strip():
+                raise ValueError("DATAGENIE_WEBHOOK_ALLOWED_HOSTS is required outside development.")
+        if not self.tenant_default_id.strip():
+            raise ValueError("DATAGENIE_TENANT_DEFAULT_ID must not be empty.")
+        if not 0.0 <= self.error_tracking_traces_sample_rate <= 1.0:
+            raise ValueError("DATAGENIE_ERROR_TRACKING_TRACES_SAMPLE_RATE must be between 0 and 1.")
+        if self.connector_task_soft_time_limit_seconds >= self.connector_task_time_limit_seconds:
+            raise ValueError("DATAGENIE_CONNECTOR_TASK_SOFT_TIME_LIMIT_SECONDS must be lower than the hard time limit.")
+        if self.connector_max_retries < 0 or self.webhook_max_retries < 0:
+            raise ValueError("Retry limits must be zero or greater.")
+        if self.webhook_delivery_timeout_seconds < 1 or self.webhook_delivery_timeout_seconds > 60:
+            raise ValueError("DATAGENIE_WEBHOOK_DELIVERY_TIMEOUT_SECONDS must be between 1 and 60.")
+        if self.connector_retry_backoff_seconds < 1 or self.connector_lease_seconds < self.connector_task_time_limit_seconds:
+            raise ValueError("Connector retry and lease settings are invalid.")
         if self.rate_limit_requests < 1:
             raise ValueError("DATAGENIE_RATE_LIMIT_REQUESTS must be at least 1.")
         if self.rate_limit_window_seconds < 1:

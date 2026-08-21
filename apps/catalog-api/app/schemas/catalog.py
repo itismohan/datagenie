@@ -69,7 +69,11 @@ class IngestionJobRead(BaseModel):
     status: JobStatus
     attempt_count: int
     retry_of_job_id: str | None
+    task_id: str | None
     cancel_requested: bool
+    dead_lettered_at: datetime | None
+    next_retry_at: datetime | None
+    lease_expires_at: datetime | None
     requested_sync_mode: SyncMode
     effective_sync_mode: SyncMode | None
     cursor_before: dict[str, Any]
@@ -157,6 +161,8 @@ class AssetCurationUpdate(BaseModel):
 class AssetSearchResponse(BaseModel):
     items: list[AssetRead]
     total: int
+    facets: dict[str, dict[str, int]] = Field(default_factory=dict)
+    index_fresh_at: datetime | None = None
 
 
 class AuditEventRead(BaseModel):
