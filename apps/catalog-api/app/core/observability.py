@@ -21,6 +21,16 @@ UNHANDLED_ERRORS = Counter(
     "Unexpected application errors grouped by exception class.",
     ["exception_type"],
 )
+RATE_LIMIT_REJECTIONS = Counter(
+    "datagenie_rate_limit_rejections_total",
+    "Requests rejected by the distributed API rate limiter.",
+    ["method"],
+)
+RATE_LIMIT_STORE_FAILURES = Counter(
+    "datagenie_rate_limit_store_failures_total",
+    "Redis rate-limit store failures grouped by enforcement policy.",
+    ["policy"],
+)
 
 
 class JsonFormatter(logging.Formatter):

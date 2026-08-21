@@ -12,7 +12,15 @@ from sqlalchemy import text
 
 from app.api.v1 import assets, audit, governance, glossary, ingestion_jobs, sources
 from app.core.config import get_settings
-from app.core.observability import REQUEST_COUNT, REQUEST_LATENCY, UNHANDLED_ERRORS, configure_logging
+from app.core.observability import (
+    RATE_LIMIT_REJECTIONS,
+    RATE_LIMIT_STORE_FAILURES,
+    REQUEST_COUNT,
+    REQUEST_LATENCY,
+    UNHANDLED_ERRORS,
+    configure_logging,
+)
+from app.core.rate_limit import RateLimitStoreUnavailable, get_rate_limit_store, rate_limit_key
 from app.db.session import create_schema, engine
 
 settings = get_settings()
@@ -42,8 +50,41 @@ async def request_context(request: Request, call_next):
     request.state.request_id = request_id
     started = perf_counter()
     response: Response | None = None
+    rate_limit_headers: dict[str, str] = {}
     try:
+        exempt_path = request.url.path in {"/health", "/health/live", "/health/ready", "/metrics"}
+        if settings.rate_limit_enabled and not exempt_path:
+            try:
+                result = get_rate_limit_store(settings.rate_limit_redis_url or "").check(
+                    rate_limit_key(request, settings.rate_limit_window_seconds),
+                    settings.rate_limit_requests,
+                    settings.rate_limit_window_seconds,
+                )
+                rate_limit_headers = {
+                    "RateLimit-Limit": str(result.limit),
+                    "RateLimit-Remaining": str(result.remaining),
+                }
+                if not result.allowed:
+                    RATE_LIMIT_REJECTIONS.labels(method=request.method).inc()
+                    response = JSONResponse(
+                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                        content=error_body(request, "rate_limit_exceeded", "Too many requests. Retry after the supplied interval."),
+                        headers={**rate_limit_headers, "Retry-After": str(result.retry_after_seconds)},
+                    )
+                    return response
+            except RateLimitStoreUnavailable:
+                policy = "open" if settings.rate_limit_fail_open else "closed"
+                RATE_LIMIT_STORE_FAILURES.labels(policy=policy).inc()
+                if not settings.rate_limit_fail_open:
+                    response = JSONResponse(
+                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        content=error_body(request, "rate_limit_unavailable", "Request protection is temporarily unavailable."),
+                    )
+                    return response
+                logger.warning("rate_limit_store_unavailable", extra={"request_id": request_id, "path": request.url.path})
+
         response = await call_next(request)
+        response.headers.update(rate_limit_headers)
         return response
     finally:
         elapsed = perf_counter() - started

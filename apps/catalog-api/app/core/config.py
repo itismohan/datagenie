@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     auth_oidc_role_claim: str = "roles"
     idempotency_ttl_seconds: int = 86_400
     request_id_header: str = "X-Request-ID"
+    rate_limit_enabled: bool = False
+    rate_limit_redis_url: str | None = None
+    rate_limit_requests: int = 300
+    rate_limit_window_seconds: int = 60
+    rate_limit_fail_open: bool = False
     log_level: str = "INFO"
 
     @model_validator(mode="after")
@@ -42,6 +47,18 @@ class Settings(BaseSettings):
                 raise ValueError("DATAGENIE_AUTH_JWT_SECRET must contain at least 32 characters when HS256 is enabled outside development.")
             if self.auth_mode == "oidc" and not all([self.auth_oidc_issuer, self.auth_oidc_audience, self.auth_oidc_jwks_url]):
                 raise ValueError("OIDC mode requires DATAGENIE_AUTH_OIDC_ISSUER, DATAGENIE_AUTH_OIDC_AUDIENCE, and DATAGENIE_AUTH_OIDC_JWKS_URL outside development.")
+            if not self.rate_limit_enabled:
+                raise ValueError("DATAGENIE_RATE_LIMIT_ENABLED must be true outside development.")
+            if not self.rate_limit_redis_url:
+                raise ValueError("DATAGENIE_RATE_LIMIT_REDIS_URL is required when rate limiting is enabled outside development.")
+            if self.rate_limit_fail_open:
+                raise ValueError("DATAGENIE_RATE_LIMIT_FAIL_OPEN must be false outside development.")
+        if self.rate_limit_requests < 1:
+            raise ValueError("DATAGENIE_RATE_LIMIT_REQUESTS must be at least 1.")
+        if self.rate_limit_window_seconds < 1:
+            raise ValueError("DATAGENIE_RATE_LIMIT_WINDOW_SECONDS must be at least 1.")
+        if self.rate_limit_enabled and not self.rate_limit_redis_url:
+            raise ValueError("DATAGENIE_RATE_LIMIT_REDIS_URL is required when rate limiting is enabled.")
         return self
 
     def jwt_secret_value(self) -> str:

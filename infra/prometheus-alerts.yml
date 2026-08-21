@@ -1,0 +1,42 @@
+groups:
+  - name: datagenie-catalog-launch
+    rules:
+      - alert: DataGenieCatalogUnavailable
+        expr: up{job="datagenie-catalog-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: catalog-api
+        annotations:
+          summary: "DataGenie catalog API target is unavailable"
+          runbook: "docs/launch-readiness-assessment.md#sequenced-launch-plan"
+
+      - alert: DataGenieCatalogElevatedServerErrors
+        expr: sum(rate(datagenie_http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(datagenie_http_requests_total[5m])), 0.001) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: catalog-api
+        annotations:
+          summary: "Catalog API 5xx rate exceeds 5 percent"
+          runbook: "docs/launch-readiness-assessment.md#sequenced-launch-plan"
+
+      - alert: DataGenieRateLimitStoreFailure
+        expr: increase(datagenie_rate_limit_store_failures_total{policy="closed"}[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+          service: catalog-api
+        annotations:
+          summary: "Catalog request protection cannot reach its Redis store"
+          runbook: "docs/launch-readiness-assessment.md#sequenced-launch-plan"
+
+      - alert: DataGenieSustainedRateLimitRejections
+        expr: sum(rate(datagenie_rate_limit_rejections_total[5m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: catalog-api
+        annotations:
+          summary: "Catalog API is rejecting more than five requests per second"
+          runbook: "docs/launch-readiness-assessment.md#sequenced-launch-plan"

@@ -49,6 +49,8 @@ services:
     environment:
       DATAGENIE_DATABASE_URL: postgresql+psycopg://${DATAGENIE_POSTGRES_USER:-datagenie}:${DATAGENIE_POSTGRES_PASSWORD:?Set DATAGENIE_POSTGRES_PASSWORD in .env}@postgres:5432/${DATAGENIE_POSTGRES_DB:-datagenie}
       DATAGENIE_AUTH_ENABLED: ${DATAGENIE_AUTH_ENABLED:-true}
+      DATAGENIE_RATE_LIMIT_ENABLED: "true"
+      DATAGENIE_RATE_LIMIT_REDIS_URL: redis://redis:6379/1
     command: ["alembic", "upgrade", "head"]
     depends_on:
       postgres:
@@ -63,9 +65,13 @@ services:
     environment:
       DATAGENIE_DATABASE_URL: postgresql+psycopg://${DATAGENIE_POSTGRES_USER:-datagenie}:${DATAGENIE_POSTGRES_PASSWORD:?Set DATAGENIE_POSTGRES_PASSWORD in .env}@postgres:5432/${DATAGENIE_POSTGRES_DB:-datagenie}
       DATAGENIE_AUTH_ENABLED: ${DATAGENIE_AUTH_ENABLED:-true}
+      DATAGENIE_RATE_LIMIT_ENABLED: "true"
+      DATAGENIE_RATE_LIMIT_REDIS_URL: redis://redis:6379/1
     depends_on:
       catalog-migrate:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     ports:
       - "8000:8000"
     healthcheck:
@@ -180,6 +186,7 @@ services:
     profiles: ["observability"]
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus-alerts.yml:/etc/prometheus/prometheus-alerts.yml:ro
       - prometheus-data:/prometheus
     command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus"]
     depends_on:

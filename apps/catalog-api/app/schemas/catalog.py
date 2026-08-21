@@ -24,6 +24,15 @@ class SourceCreate(BaseModel):
         description="Non-secret connector options such as Snowflake warehouse, role, or authenticator.",
     )
 
+    @field_validator("secret_ref")
+    @classmethod
+    def require_external_secret_reference(cls, value: str) -> str:
+        normalized = value.strip()
+        allowed_prefixes = ("env://", "vault://", "aws-secretsmanager://", "gcp-secret://", "azure-keyvault://")
+        if not normalized.startswith(allowed_prefixes) or len(normalized.split("://", 1)[1]) < 1:
+            raise ValueError("secret_ref must be an external secret reference; raw credentials are not accepted.")
+        return normalized
+
     @field_validator("include_schemas")
     @classmethod
     def normalize_schemas(cls, value: list[str]) -> list[str]:
