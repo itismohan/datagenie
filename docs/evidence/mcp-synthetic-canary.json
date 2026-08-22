@@ -1,0 +1,38 @@
+{
+  "generated_at": "2026-08-22T04:49:39.985019+00:00",
+  "ledger": {
+    "all_tenant_bound": true,
+    "contains_raw_purpose": false,
+    "entry_count": 5,
+    "operations": [
+      "initialize",
+      "tools/list",
+      "resources/list",
+      "prompts/list",
+      "get_asset_context"
+    ]
+  },
+  "metrics_registered": {
+    "datagenie_mcp_execution_ledger_write_failures_total": false,
+    "datagenie_mcp_policy_decisions_total": true,
+    "datagenie_mcp_tenant_boundary_violations_total": false,
+    "datagenie_mcp_tool_calls_total": true
+  },
+  "negative_path": {
+    "foreign_tenant_result_payload": false,
+    "foreign_tenant_status": 401
+  },
+  "pass": true,
+  "protocol": {
+    "initialize_status": 200,
+    "prompt_count": 3,
+    "resource_count": 5,
+    "tool_count": 4
+  },
+  "scope": "local synthetic control verification only; no live OIDC, customer tenant, or downstream network traffic",
+  "structured_result": {
+    "contains_policy": true,
+    "status": 200,
+    "technical_metadata_redacted": true
+  }
+}

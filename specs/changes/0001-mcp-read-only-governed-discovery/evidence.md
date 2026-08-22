@@ -20,8 +20,8 @@
 | Test category | Required result | CI run/link | Status | Owner/date |
 |---|---|---|---|---|
 | Unit and contract schema tests | All pass. | Local: catalog `42 passed`, quality `4 passed`, lineage `3 passed`, gateway `10 passed`; SDD validator passed | Complete locally | TBD |
-| Approved-host interoperability | Initialize, authorize, list tools/resources/prompts and call allowed tools. | `apps/mcp-gateway/tests/test_transport.py`; `test_jsonrpc_tools.py` | Complete locally | TBD |
-| Tenant-negative matrix | No cross-tenant content, inference, handle polling/cancellation or cache leakage. | `test_transport.py::test_adversarial_identity_and_input_attempts_do_not_leak_results` | Complete locally for beta surface | TBD |
+| Approved-host interoperability | Initialize, authorize, list tools/resources/prompts and call allowed tools. | Local synthetic artifact: `docs/evidence/mcp-synthetic-canary.json`; gateway tests | Complete locally; staging pending | TBD |
+| Tenant-negative matrix | No cross-tenant content, inference, handle polling/cancellation or cache leakage. | Local synthetic artifact returns `401` and no result for a foreign tenant; adversarial gateway test | Complete locally for beta surface; staging pending | TBD |
 | Token/audience/scope matrix | Invalid/missing/expired/wrong-audience/wrong-scope safely denied. | Host, foreign tenant and wrong-audience coverage implemented; expiry/scope CI expansion pending | Partial | TBD |
 | Redaction/privacy tests | No raw data, credential, secret or unauthorized restricted evidence. | `test_tool_execution.py`; `test_jsonrpc_tools.py` | Complete locally for context/tool response fixtures | TBD |
 | Prompt-injection/SSRF tests | Malicious content/URLs cannot trigger privilege or egress abuse. | No arbitrary URL/HTTP/SQL tools are advertised; formal hostile-metadata canary test pending | Partial | TBD |
@@ -35,8 +35,8 @@
 | Dashboard | Tool calls, latency, denials, policy, ledger and errors visible. | `docs/mcp-beta-operations-dashboard.md`; Prometheus scrape job added | Prepared; not exercised in staging | TBD |
 | Alerts | Boundary violation, ledger failure, policy outage and SLO alert routes tested. | `infra/prometheus-alerts.yml` | Defined; notification route test pending | TBD |
 | Kill switch | Global, tenant and per-tool disable controls tested. | Global and per-tool configuration; global test implemented | Partial: tenant-specific switch not needed for one-tenant beta | TBD |
-| Ledger sampling | Security/governance sample confirms tenant, policy, correlation and minimization. | Pending | Pending | TBD |
-| Canary SLOs | Measured p95, error/denial and result-bound figures meet approved budgets. | Pending | Pending | TBD |
+| Ledger sampling | Security/governance sample confirms tenant, policy, correlation and minimization. | Synthetic artifact: five protocol/tool ledger records, tenant-bound and purpose-digest-only | Complete locally; live staging sample pending | TBD |
+| Canary SLOs | Measured p95, error/denial and result-bound figures meet approved budgets. | Synthetic functional check passed; a time-windowed staging Prometheus measurement is still required | Pending staging | TBD |
 
 ## Approval record
 
