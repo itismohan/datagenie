@@ -3,6 +3,7 @@
  * Design philosophy: editorial enterprise modernism; evidence-forward, asymmetric, and deliberately restrained.
  */
 import { useState } from "react";
+import "./market-comparison.css";
 import {
   Activity,
   ArrowRight,
@@ -145,6 +146,35 @@ function ArchitectureFlowVisual() {
   </div>;
 }
 
+const radarAxes = ["Agent change control", "Open-source flexibility", "Packaged breadth", "Cloud ecosystem fit", "Developer extensibility"];
+const radarProfiles = [
+  { label: "DataGenie", color: "#6778ff", values: [5, 5, 2, 2, 5] },
+  { label: "Enterprise suites", color: "#37bda2", values: [3, 1, 5, 5, 3] },
+  { label: "Open metadata platforms", color: "#d8a455", values: [2, 5, 3, 3, 5] },
+];
+
+function radarPoint(value: number, index: number, radius = 104) {
+  const angle = (Math.PI * 2 * index) / radarAxes.length - Math.PI / 2;
+  const distance = (value / 5) * radius;
+  return [160 + Math.cos(angle) * distance, 160 + Math.sin(angle) * distance];
+}
+
+function radarPolygon(values: number[]) {
+  return values.map((value, index) => radarPoint(value, index).join(",")).join(" ");
+}
+
+function MarketComparisonVisual() {
+  return <div className="market-radar" role="img" aria-label="Directional market-positioning radar comparing DataGenie, enterprise governance suites, and open metadata platforms">
+    <svg viewBox="0 0 320 320" aria-hidden="true">
+      {[1, 2, 3, 4, 5].map((ring) => <polygon key={ring} className="radar-ring" points={radarAxes.map((_, index) => radarPoint(ring, index).join(",")).join(" ")} />)}
+      {radarAxes.map((_, index) => { const [x, y] = radarPoint(5, index); return <line key={index} className="radar-axis" x1="160" y1="160" x2={x} y2={y} />; })}
+      {radarProfiles.map((profile) => <polygon key={profile.label} className="radar-profile" style={{ "--radar-color": profile.color } as React.CSSProperties} points={radarPolygon(profile.values)} />)}
+      {radarAxes.map((axis, index) => { const [x, y] = radarPoint(5.9, index); return <text key={axis} className="radar-label" x={x} y={y}>{axis}</text>; })}
+    </svg>
+    <div className="radar-legend">{radarProfiles.map((profile) => <span key={profile.label}><i style={{ background: profile.color }} />{profile.label}</span>)}</div>
+  </div>;
+}
+
 export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [docTab, setDocTab] = useState<keyof typeof docs>("what");
@@ -213,6 +243,14 @@ export default function Home() {
           <div className="architecture-intro"><div><SectionMark>From source to trusted decision</SectionMark><h2>Architecture that turns data flow into <em>governed context.</em></h2></div><p>DataGenie connects source discovery, durable ingestion, the tenant-bound catalog control plane, and quality and lineage evidence so teams can see what data is, who owns it, and what a change will affect.</p></div>
           <ArchitectureFlowVisual />
           <p className="architecture-note"><LockKeyhole size={17} /><span><strong>Bounded authority:</strong> metadata and evidence move through the platform, but governance changes remain proposal-only until an authorized steward and server-side rechecks confirm them.</span></p>
+        </section>
+
+        <section id="comparison" className="market-compare section-rail">
+          <div className="market-compare-intro"><div><SectionMark>Market positioning</SectionMark><h2>Choose a control plane when <em>governance has to be provable.</em></h2></div><p>DataGenie is intentionally not presented as a feature-for-feature replacement for every established suite. It is a focused, open control plane for tenant-bound discovery and agent-assisted governance that remains accountable to a human steward.</p></div>
+          <div className="market-compare-grid"><MarketComparisonVisual /><div className="market-principles"><div><span>01</span><strong>Policy is executable</strong><p>Deterministic rules return an observable decision, rule references and obligations—not a black-box recommendation.</p></div><div><span>02</span><strong>Agents cannot self-approve</strong><p>MCP tools create pending intent only; a current steward and server-side rechecks remain the mutation boundary.</p></div><div><span>03</span><strong>Evidence is operational</strong><p>Tenant, host, request ID, policy outcome and execution result correlate in a durable support ledger.</p></div></div></div>
+          <div className="market-matrix-wrap"><table className="market-matrix"><caption>Feature matrix: architectural emphasis, not a benchmark score</caption><thead><tr><th>Decision dimension</th><th>DataGenie</th><th>Enterprise suites</th><th>Microsoft Purview</th><th>Open metadata platforms</th></tr></thead><tbody><tr><th>Agent-initiated governance change</th><td><strong>Proposal-only</strong><br /><span>Hash, nonce, steward, rechecks</span></td><td>Vendor workflow dependent</td><td>Service workflow dependent</td><td>Implementation dependent</td></tr><tr><th>MCP request security evidence</th><td><strong>Tenant + host + request ledger</strong><br /><span>Scope and outcome correlated</span></td><td>Verify per product and configuration</td><td>Verify per service and configuration</td><td>Verify per deployment and extension</td></tr><tr><th>Operating model</th><td><strong>Apache-licensed, self-managed</strong><br /><span>Controlled release posture</span></td><td>Commercial, packaged</td><td>Microsoft cloud ecosystem</td><td>Open, engineering-led</td></tr><tr><th>Catalog / quality / lineage breadth</th><td>Focused initial workflow<br /><span>PostgreSQL + Snowflake first</span></td><td><strong>Broad packaged portfolio</strong></td><td><strong>Broad Microsoft-native portfolio</strong></td><td><strong>Broad open metadata ecosystem</strong></td></tr><tr><th>Best-fit buyer question</th><td>“Can we prove the agent did not overstep?”</td><td>“How do we standardize enterprise governance?”</td><td>“How do we govern a Microsoft-centered estate?”</td><td>“How do we build an extensible metadata foundation?”</td></tr></tbody></table></div>
+          <p className="market-disclosure"><ShieldCheck size={16} /><span><strong>Reading this comparison:</strong> the radar is a directional positioning profile based on public product documentation, not a third-party benchmark or procurement score. Validate every alternative against your required deployment, security, connector, support and compliance criteria.</span></p>
+          <p className="market-sources">Public product references: <a href="https://www.collibra.com/products/collibra-platform" target="_blank" rel="noreferrer">Collibra</a> · <a href="https://www.alation.com/product/agentic-data-intelligence-platform/" target="_blank" rel="noreferrer">Alation</a> · <a href="https://atlan.com/active-data-governance/" target="_blank" rel="noreferrer">Atlan</a> · <a href="https://learn.microsoft.com/en-us/purview/data-governance-overview" target="_blank" rel="noreferrer">Microsoft Purview</a> · <a href="https://docs.datahub.com/docs/features" target="_blank" rel="noreferrer">DataHub</a> · <a href="https://open-metadata.org/" target="_blank" rel="noreferrer">OpenMetadata</a>.</p>
         </section>
 
         <section className="evidence-story">
