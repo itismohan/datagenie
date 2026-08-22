@@ -52,6 +52,14 @@ The MCP surface is proposal-only for governed change: agents and hosts can creat
 | [Production release architecture](production-release-architecture.md) | Tenant, worker, search, ingress, and rollout controls plus evidence gates. |
 | [Launch-readiness assessment](launch-readiness-assessment.md) | Current implementation assessment and remaining launch conditions. |
 
+## Architecture and transformation context
+
+| Document | Scope |
+|---|---|
+| [SDD and MCP transformation blueprint](sdd-mcp-transformation-blueprint.md) | The original transformation approach, decision framework, and staged adoption rationale. |
+| [MCP specification notes](research/mcp-specification-notes.md) | Research notes that informed the governed MCP surface; not an active contract. |
+| [SDD adoption notes](research/sdd-adoption-notes.md) | Research notes that informed the SDD baseline; not an active contract. |
+
 ## Research and historical context
 
 The [`research/`](research/) notes record directional investigation. They are not current product commitments. Completed SDD artifacts under [`../specs/changes/`](../specs/changes/) remain valuable for traceability; consult their durable domain and platform specifications before treating an older decision as current policy.

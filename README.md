@@ -1,11 +1,15 @@
 # DataGenie
 
-<img src="./apps/public-site/client/public/datagenie.png" alt="DataGenie logo" width="168" />
+<p align="center"><img src="./apps/public-site/client/public/datagenie.png" alt="DataGenie logo" width="168" /></p>
 
-[![DataGenie CI](https://github.com/itismohan/datagenie/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/itismohan/datagenie/actions/workflows/ci.yml)
-[![GitHub Pages](https://github.com/itismohan/datagenie/actions/workflows/pages.yml/badge.svg?branch=main)](https://github.com/itismohan/datagenie/actions/workflows/pages.yml)
-![Release posture](https://img.shields.io/badge/release%20posture-controlled%20staging%20canary-276749)
-![Engineering](https://img.shields.io/badge/engineering-SDD%20tracked-534AB7)
+<p align="center">
+  <a href="https://github.com/itismohan/datagenie/actions/workflows/ci.yml"><img src="https://github.com/itismohan/datagenie/actions/workflows/ci.yml/badge.svg?branch=main" alt="DataGenie CI" /></a>
+  <a href="https://github.com/itismohan/datagenie/actions/workflows/pages.yml"><img src="https://github.com/itismohan/datagenie/actions/workflows/pages.yml/badge.svg?branch=main" alt="GitHub Pages" /></a>
+  <img src="https://img.shields.io/badge/release%20posture-controlled%20staging%20canary-276749" alt="Release posture: controlled staging canary" />
+  <img src="https://img.shields.io/badge/engineering-SDD%20tracked-534AB7" alt="Engineering: SDD tracked" />
+</p>
+
+<p align="center"><sub><strong>CI</strong> validates the engineering baseline · <strong>Pages</strong> publishes the product site · <strong>Release posture</strong> is controlled staging, not GA · <strong>SDD</strong> keeps material changes traceable.</sub></p>
 
 **DataGenie** is an enterprise data-governance platform that brings catalog discovery, metadata stewardship, explainable quality, operational lineage, and proposal-based governance into one accountable operating model. It is designed to help teams find and use data with context while retaining human authority for governed change.
 

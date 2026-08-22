@@ -29,6 +29,7 @@ const LOGO_URL = `${import.meta.env.BASE_URL}datagenie.png`;
 
 const navItems = [
   ["Platform", "#platform"],
+  ["Architecture", "#architecture"],
   ["Governance model", "#governance"],
   ["Documentation", "#docs"],
   ["Staging guide", "#staging"],
@@ -130,6 +131,22 @@ function LineageFlowVisual() {
   </div>;
 }
 
+function ArchitectureFlowVisual() {
+  return <div className="architecture-flow" role="img" aria-label="DataGenie quick-start architecture showing sources through connector workers, the catalog governance boundary, evidence and lineage, and governed discovery">
+    <div className="architecture-flow-head"><span>Quick-start architecture</span><span>Metadata forward · authority bounded</span></div>
+    <div className="architecture-track">
+      <div className="architecture-node architecture-node--sources"><span>01</span><strong>Enterprise sources</strong><small>PostgreSQL · Snowflake · transformation tools</small></div>
+      <div className="architecture-arrow" aria-hidden="true">→</div>
+      <div className="architecture-node architecture-node--ingest"><span>02</span><strong>Connector workers</strong><small>Discover · profile · incrementally sync</small></div>
+      <div className="architecture-arrow" aria-hidden="true">→</div>
+      <div className="architecture-node architecture-node--catalog"><span>03</span><strong>Catalog control plane</strong><small>Tenant · policy · audit · metadata</small></div>
+      <div className="architecture-arrow" aria-hidden="true">→</div>
+      <div className="architecture-node architecture-node--outcome"><span>04</span><strong>Governed discovery</strong><small>Search · evidence · impact · MCP</small></div>
+    </div>
+    <div className="architecture-evidence"><div><Activity size={15} /><span><strong>Quality evidence</strong>Rules, runs and incidents stay attached to the asset.</span></div><div><Route size={15} /><span><strong>Operational lineage</strong>Source → transform → product → consumer context.</span></div><div><LockKeyhole size={15} /><span><strong>Steward authority</strong>Proposals are reviewed before a server-confirmed change.</span></div></div>
+  </div>;
+}
+
 export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [docTab, setDocTab] = useState<keyof typeof docs>("what");
@@ -174,8 +191,7 @@ export default function Home() {
             <div className="hero-console">
               <div className="console-top"><span className="console-pulse" /><span>Governed asset context</span><code>trusted</code></div>
               <div className="console-row"><span>Owner</span><strong>Finance data stewardship</strong></div>
-              <div className="console-row"><span>Quality evidence</span><strong className="console-good">Fresh · explainable</strong></div>
-              <div className="console-row"><span>Impact</span><strong>12 downstream consumers</strong></div>
+              <div className="console-status-grid" aria-label="Governed asset status summary"><div><span>Trust</span><strong className="console-good">Allowed</strong><small>Policy check current</small></div><div><span>Evidence</span><strong className="console-good">Fresh</strong><small>Quality confirmed</small></div><div><span>Impact</span><strong>12 users</strong><small>Consumers mapped</small></div></div>
               <div className="console-legend"><span className="proof-chip proof-chip--healthy">● healthy evidence</span><span className="proof-chip proof-chip--review">◆ review boundary</span></div>
             </div>
             <div className="hero-orbit hero-orbit-one" /><div className="hero-orbit hero-orbit-two" />
@@ -193,6 +209,12 @@ export default function Home() {
           <div className="pillar-grid">
             {productPillars.map((pillar) => { const Icon = pillar.icon; return <article className="pillar-card" key={pillar.number}><div className="pillar-head"><span>{pillar.number}</span><Icon size={22} /></div><h3>{pillar.title}</h3><p>{pillar.body}</p><div className="card-evidence">{pillar.evidence}</div></article>; })}
           </div>
+        </section>
+
+        <section id="architecture" className="architecture section-rail">
+          <div className="architecture-intro"><div><SectionMark>From source to trusted decision</SectionMark><h2>Architecture that turns data flow into <em>governed context.</em></h2></div><p>DataGenie connects source discovery, durable ingestion, the tenant-bound catalog control plane, and quality and lineage evidence so teams can see what data is, who owns it, and what a change will affect.</p></div>
+          <ArchitectureFlowVisual />
+          <p className="architecture-note"><LockKeyhole size={17} /><span><strong>Bounded authority:</strong> metadata and evidence move through the platform, but governance changes remain proposal-only until an authorized steward and server-side rechecks confirm them.</span></p>
         </section>
 
         <section className="evidence-story">
