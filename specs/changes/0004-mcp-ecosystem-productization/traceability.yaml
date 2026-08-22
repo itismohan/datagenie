@@ -1,0 +1,58 @@
+change_id: "0004-mcp-ecosystem-productization"
+title: "MCP ecosystem productization"
+status: "implementing"
+owners:
+  product: "Product owner (TBD)"
+  technical: "Platform and developer experience owner (TBD)"
+  security: "Security owner (TBD)"
+  operations: "SRE/on-call owner (TBD)"
+requirements:
+  - id: "DG-MCP-PRODUCT-001"
+    statement: "The platform SHALL publish a tenant-admin MCP onboarding pack with safe OAuth registration, scope, host, test-tenant, data-handling, and support guidance."
+    implementation: ["docs/mcp-tenant-admin-onboarding.md"]
+    tests: ["tools/tests/test_mcp_productization.py::test_published_productization_docs_cover_required_admin_controls"]
+    contracts: ["contracts.md#published-artifacts"]
+    observability: ["docs/mcp-tenant-admin-onboarding.md#support-investigation"]
+    evidence: ["evidence.md#requirement-completion"]
+  - id: "DG-MCP-PRODUCT-002"
+    statement: "The platform SHALL publish an MCP versioning and deprecation policy with compatibility, notice, migration, and retirement rules."
+    implementation: ["docs/mcp-versioning-and-deprecation-policy.md"]
+    tests: ["tools/tests/test_mcp_productization.py::test_published_productization_docs_cover_required_admin_controls"]
+    contracts: ["contracts.md#compatibility-and-deprecation-rules"]
+    observability: ["docs/mcp-versioning-and-deprecation-policy.md#change-record-and-notice"]
+    evidence: ["evidence.md#contract-and-compatibility-evidence"]
+  - id: "DG-MCP-PRODUCT-003"
+    statement: "The platform SHALL offer constrained standard-transport Python and TypeScript helpers that reject direct mutation, approval, and execution tool names."
+    implementation: ["clients/python/datagenie_mcp.py", "clients/typescript/src/index.ts"]
+    tests: ["tools/tests/test_mcp_productization.py::test_python_helper_uses_standard_jsonrpc_and_rejects_unapproved_tools", "tools/tests/test_mcp_productization.py::test_typescript_helper_declares_the_same_constrained_surface"]
+    contracts: ["contracts.md#helper-request-contract"]
+    observability: ["apps/mcp-gateway/app/services/execution_ledger.py"]
+    evidence: ["evidence.md#requirement-completion"]
+  - id: "DG-MCP-PRODUCT-004"
+    statement: "The platform SHALL provide a sanitized partner certification harness for authentication, scope, schema, proposal-only, error, request, and ledger validation."
+    implementation: ["tools/run_mcp_partner_certification.py"]
+    tests: ["tools/tests/test_mcp_productization.py::test_partner_certification_harness_emits_sanitized_two_profile_evidence"]
+    contracts: ["contracts.md#certification-artifact-contract"]
+    observability: ["apps/mcp-gateway/app/services/execution_ledger.py"]
+    evidence: ["evidence.md#operational-evidence"]
+  - id: "DG-MCP-PRODUCT-005"
+    statement: "The certification harness SHALL validate two named interoperable host profiles while distinguishing synthetic preflight from external-host certification."
+    implementation: ["tools/run_mcp_partner_certification.py", "docs/mcp-partner-certification.md"]
+    tests: ["tools/tests/test_mcp_productization.py::test_partner_certification_harness_emits_sanitized_two_profile_evidence"]
+    contracts: ["contracts.md#certification-artifact-contract"]
+    observability: ["docs/evidence/mcp-partner-certification-synthetic.json"]
+    evidence: ["evidence.md#operational-evidence"]
+  - id: "DG-MCP-PRODUCT-006"
+    statement: "Support SHALL be able to correlate a certified tool result from request ID to a minimized tenant-scoped execution-ledger entry."
+    implementation: ["docs/mcp-tenant-admin-onboarding.md", "tools/run_mcp_partner_certification.py"]
+    tests: ["tools/tests/test_mcp_productization.py::test_partner_certification_harness_emits_sanitized_two_profile_evidence"]
+    contracts: ["contracts.md#certification-artifact-contract"]
+    observability: ["apps/mcp-gateway/app/services/execution_ledger.py"]
+    evidence: ["evidence.md#operational-evidence"]
+  - id: "DG-MCP-PRODUCT-007"
+    statement: "New MCP domain packs SHALL require approved customer feedback, governance and security review, and a bounded SDD change before implementation."
+    implementation: ["docs/mcp-domain-pack-governance.md"]
+    tests: ["tools/tests/test_mcp_productization.py::test_domain_pack_governance_requires_approved_feedback_and_sdd"]
+    contracts: ["contracts.md#domain-pack-intake-contract"]
+    observability: ["docs/mcp-domain-pack-governance.md#decision-record"]
+    evidence: ["evidence.md#requirement-completion"]

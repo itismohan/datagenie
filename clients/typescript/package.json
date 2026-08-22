@@ -1,0 +1,13 @@
+{
+  "name": "@datagenie/mcp-helper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Constrained standard JSON-RPC helper for DataGenie MCP enterprise hosts",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

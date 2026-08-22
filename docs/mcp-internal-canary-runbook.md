@@ -1,6 +1,6 @@
 # Internal MCP Governed-Discovery Canary Runbook
 
-This runbook controls the first **internal-only** deployment of the read-only DataGenie MCP discovery gateway. It permits exactly one named non-customer tenant and one approved internal MCP host through the opt-in `mcp-beta` profile. The general public ingress must not route to the gateway.
+This runbook controls the first **internal-only** deployment of the DataGenie MCP governed-discovery and proposal-intent gateway. It permits exactly one named non-customer tenant and one approved internal MCP host through the opt-in `mcp-beta` profile. The general public ingress must not route to the gateway. Proposal-intent tools create pending steward-reviewable proposals only; they never approve, execute, or directly mutate a governed resource.
 
 > **Stop condition:** Set `DATAGENIE_MCP_KILL_SWITCH_ENABLED=true` immediately if a cross-tenant result, authorization inconsistency, unexpected host, ledger failure, or metrics failure is suspected. Preserve request IDs, gateway logs, the durable ledger, and Prometheus samples. Do not delete evidence during an incident.
 
@@ -38,14 +38,15 @@ Use a test token for the approved internal tenant and host. Retain one request I
 
 | Step | Action | Pass condition | Evidence |
 |---|---|---|---|
-| 1 | `initialize` | Supported protocol and read-only instructions returned. | Response and request ID. |
-| 2 | `tools/list`, `resources/list`, `prompts/list` | Four tools, five resources, three prompts; no mutation/export/SQL/arbitrary HTTP. | Serialized lists and response hash. |
+| 1 | `initialize` | Supported protocol and governed-discovery/proposal-intent instructions returned. | Response and request ID. |
+| 2 | `tools/list`, `resources/list`, `prompts/list` | Seven tools, five resources, three prompts; four discovery tools plus three proposal-intent tools; no direct mutation/export/SQL/arbitrary HTTP. | Serialized lists and response hash. |
 | 3 | `search_governed_assets` | Tenant-visible metadata with provenance and policy evidence. | Result count, size, policy outcomes. |
 | 4 | `get_asset_context` | No source secret or raw row; obligations/redactions available. | Redaction indicators and ledger sample. |
 | 5 | `get_quality_evidence` | Bounded explainable quality evidence with no raw samples. | Run IDs, state, response size. |
 | 6 | `analyze_lineage_impact` | Bounded depth/result size with provenance and confidence. | Node/edge count and latency. |
-| 7 | Foreign tenant, wrong audience, wrong host, injected `tenant_id`, and mutation tool | Safe denial without a governed payload. | Negative responses and metrics delta. |
-| 8 | Kill switch | Safe unavailable response before tool dispatch. | Config change, response, and restart/reload record. |
+| 7 | Each proposal-intent tool with `governance:propose` | Returns a pending proposal, hash, inbox URI, policy/evidence, and no confirmation nonce; no job or governance mutation is applied. | Structured result and ledger sample. |
+| 8 | Foreign tenant, wrong audience, wrong host, missing proposal scope, injected `tenant_id`, and direct mutation tool | Safe denial without a governed payload. | Negative responses and metrics delta. |
+| 9 | Kill switch | Safe unavailable response before tool dispatch. | Config change, response, and restart/reload record. |
 
 ## Signal and approval gates
 

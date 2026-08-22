@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-22T04:49:39.985019+00:00",
+  "generated_at": "2026-08-22T05:48:43.981922+00:00",
   "ledger": {
     "all_tenant_bound": true,
     "contains_raw_purpose": false,
@@ -27,7 +27,7 @@
     "initialize_status": 200,
     "prompt_count": 3,
     "resource_count": 5,
-    "tool_count": 4
+    "tool_count": 7
   },
   "scope": "local synthetic control verification only; no live OIDC, customer tenant, or downstream network traffic",
   "structured_result": {

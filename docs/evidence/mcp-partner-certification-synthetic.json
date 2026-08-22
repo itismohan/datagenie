@@ -1,0 +1,65 @@
+{
+  "assertions": {
+    "all_required_checks_passed": true,
+    "ledger_entries_tenant_bound": true,
+    "proposal_tools_return_pending_intent_only": true,
+    "request_to_ledger_correlation": true,
+    "two_distinct_host_profiles": true
+  },
+  "certification_level": "synthetic_preflight",
+  "correlation": {
+    "ledger_entry_count": 9,
+    "ledger_entry_found": true,
+    "request_ids": [
+      "cert-enterprise-governed-host-context",
+      "cert-generic-streamable-http-context"
+    ]
+  },
+  "generated_at": "2026-08-22T05:48:43.247208+00:00",
+  "limitations": [
+    "Synthetic profile validation only",
+    "No live OIDC validation",
+    "No external customer-host certification",
+    "No customer data or production tenant"
+  ],
+  "pass": true,
+  "profiles": [
+    {
+      "context_request_id_propagated": true,
+      "context_status": 200,
+      "direct_mutation_rejected": true,
+      "direct_mutation_status": 404,
+      "initialize_status": 200,
+      "metadata_status": 200,
+      "missing_scope_rejected": true,
+      "missing_scope_status": 403,
+      "profile": "generic-streamable-http",
+      "proposal_is_pending": null,
+      "proposal_status": null,
+      "request_id": "cert-generic-streamable-http-context",
+      "schema_safe": true,
+      "schema_status": 422,
+      "structured_result_complete": true,
+      "tools_match": true
+    },
+    {
+      "context_request_id_propagated": true,
+      "context_status": 200,
+      "direct_mutation_rejected": true,
+      "direct_mutation_status": 404,
+      "initialize_status": 200,
+      "metadata_status": 200,
+      "missing_scope_rejected": true,
+      "missing_scope_status": 403,
+      "profile": "enterprise-governed-host",
+      "proposal_is_pending": true,
+      "proposal_status": 200,
+      "request_id": "cert-enterprise-governed-host-context",
+      "schema_safe": true,
+      "schema_status": 422,
+      "structured_result_complete": true,
+      "tools_match": true
+    }
+  ],
+  "scope": "local synthetic preflight only; no live OIDC, customer tenant, customer host, source credential, raw prompt, or governed result data"
+}

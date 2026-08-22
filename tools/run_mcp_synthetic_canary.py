@@ -176,7 +176,7 @@ def main() -> int:
         },
         "metrics_registered": observed_metrics,
         "pass": initialized.status_code == 200
-        and len(tools.json().get("result", {}).get("tools", [])) == 4
+        and len(tools.json().get("result", {}).get("tools", [])) == 7
         and len(resources.json().get("result", {}).get("resources", [])) == 5
         and len(prompts.json().get("result", {}).get("prompts", [])) == 3
         and context.status_code == 200
