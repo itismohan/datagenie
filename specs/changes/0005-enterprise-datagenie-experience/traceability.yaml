@@ -1,0 +1,58 @@
+change_id: "0005-enterprise-datagenie-experience"
+title: "Enterprise DataGenie experience"
+status: "implementing"
+owners:
+  product: "Product owner (TBD)"
+  technical: "Frontend/platform owner (TBD)"
+  security: "Security owner (TBD)"
+  operations: "Operations owner (TBD)"
+requirements:
+  - id: "DG-UI-ENTERPRISE-001"
+    statement: "The frontend SHALL provide a responsive enterprise product shell with tenant context, navigation, alerts, search, and user context."
+    implementation: ["apps/frontend/src/pages/App.jsx", "apps/frontend/src/styles.css"]
+    tests: ["apps/frontend/tests/enterprise-ui-contract.test.mjs"]
+    contracts: ["contracts.md#frontend-runtime-configuration"]
+    observability: ["specs/changes/0005-enterprise-datagenie-experience/evidence.md#operational-evidence"]
+    evidence: ["evidence.md#requirement-completion"]
+  - id: "DG-UI-ENTERPRISE-002"
+    statement: "The catalog workspace SHALL expose safe governed asset discovery and selected asset context with ownership, classification, certification, quality, and freshness."
+    implementation: ["apps/frontend/src/pages/App.jsx"]
+    tests: ["apps/frontend/tests/enterprise-ui-contract.test.mjs"]
+    contracts: ["contracts.md#catalog-loading-contract"]
+    observability: ["specs/changes/0005-enterprise-datagenie-experience/evidence.md#operational-evidence"]
+    evidence: ["evidence.md#requirement-completion"]
+  - id: "DG-UI-ENTERPRISE-003"
+    statement: "The dashboard SHALL present enterprise governance and quality signals without representing suggestions as approved actions."
+    implementation: ["apps/frontend/src/pages/App.jsx"]
+    tests: ["apps/frontend/tests/enterprise-ui-contract.test.mjs"]
+    contracts: ["contracts.md#governance-presentation-contract"]
+    observability: ["specs/changes/0005-enterprise-datagenie-experience/evidence.md#operational-evidence"]
+    evidence: ["evidence.md#requirement-completion"]
+  - id: "DG-UI-ENTERPRISE-004"
+    statement: "The governance experience SHALL show proposals as human-reviewable pending intent and SHALL not expose direct approval or execution controls."
+    implementation: ["apps/frontend/src/pages/App.jsx"]
+    tests: ["apps/frontend/tests/enterprise-ui-contract.test.mjs"]
+    contracts: ["contracts.md#governance-presentation-contract"]
+    observability: ["specs/changes/0005-enterprise-datagenie-experience/evidence.md#security-and-tenant-evidence"]
+    evidence: ["evidence.md#requirement-completion"]
+  - id: "DG-UI-ENTERPRISE-005"
+    statement: "The interface SHALL display explainable quality and bounded lineage context with freshness, confidence, evidence, and incident indicators."
+    implementation: ["apps/frontend/src/pages/App.jsx"]
+    tests: ["apps/frontend/tests/enterprise-ui-contract.test.mjs"]
+    contracts: ["contracts.md#governance-presentation-contract"]
+    observability: ["specs/changes/0005-enterprise-datagenie-experience/evidence.md#operational-evidence"]
+    evidence: ["evidence.md#requirement-completion"]
+  - id: "DG-UI-ENTERPRISE-006"
+    statement: "The interface SHALL show a safe API loading, error, or demonstration state and preserve request-ID support correlation."
+    implementation: ["apps/frontend/src/pages/App.jsx"]
+    tests: ["apps/frontend/tests/enterprise-ui-contract.test.mjs"]
+    contracts: ["contracts.md#support-correlation-contract"]
+    observability: ["specs/changes/0005-enterprise-datagenie-experience/evidence.md#operational-evidence"]
+    evidence: ["evidence.md#requirement-completion"]
+  - id: "DG-UI-ENTERPRISE-007"
+    statement: "The interface SHALL provide keyboard-operable controls and responsive navigation and content reflow."
+    implementation: ["apps/frontend/src/pages/App.jsx", "apps/frontend/src/styles.css"]
+    tests: ["apps/frontend/tests/enterprise-ui-contract.test.mjs"]
+    contracts: ["design.md#accessibility-and-responsiveness"]
+    observability: ["specs/changes/0005-enterprise-datagenie-experience/evidence.md#operational-evidence"]
+    evidence: ["evidence.md#requirement-completion"]

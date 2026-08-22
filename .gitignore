@@ -10,6 +10,10 @@ __pycache__/
 *.sqlite3
 .env
 
+# Node.js dependencies and build output
+node_modules/
+dist/
+
 # Editor and operating-system artifacts
 .DS_Store
 .idea/
