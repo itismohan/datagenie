@@ -32,6 +32,38 @@ The platform is organized around dedicated service boundaries for catalog, conne
 
 MCP is deliberately constrained. The gateway exposes governed reads and proposal intent, while approval and execution remain behind the steward inbox and server-side checks for identity, policy, proposal hash, nonce, and current resource version. This ensures that an agent or host cannot turn a recommendation into a governed mutation.[4] [5]
 
+## Quick-start architecture and lineage flow
+
+The flow below shows how DataGenie converts source metadata into governed discovery and operational impact context. **Metadata and evidence move forward; approval authority does not.** Connector and quality work can be asynchronous, while the Catalog API remains the tenant and governance control point.[2] [3]
+
+```text
+  Enterprise sources                    Governed intelligence plane                    Decisions
+┌──────────────────────┐       ┌────────────────────────────────────────┐       ┌─────────────────────┐
+│ PostgreSQL           │       │ Connector workers                        │       │ Search and catalog  │
+│ Snowflake            │──────▶│ • discover / profile / incrementally sync│──────▶│ • assets / owners   │
+│ Transformation tools │       └───────────────────┬────────────────────┘       │ • classification    │
+└──────────────────────┘                           │                            │ • quality evidence  │
+                                                   ▼                            └──────────┬──────────┘
+                                  ┌─────────────────────────────────┐                     │
+                                  │ Catalog API — tenant boundary    │                     ▼
+                                  │ metadata • audit • policy        │          ┌─────────────────────┐
+                                  └───────────────┬─────────────────┘          │ Analysts and hosts  │
+                                                  │                            │ governed discovery  │
+                      ┌───────────────────────────┴────────────────────┐       └─────────────────────┘
+                      ▼                                                ▼
+          ┌────────────────────────┐                    ┌────────────────────────┐
+          │ Quality evidence       │                    │ Lineage and impact     │
+          │ rules • runs • issues  │                    │ typed edges • confidence│
+          └────────────────────────┘                    └────────────┬───────────┘
+                                                                     │
+Lineage example:                                                     ▼
+  source table ──▶ dbt transformation ──▶ governed data product ──▶ dashboard / risk report
+
+Proposal-only change path:  MCP host or agent ──▶ proposal inbox ──▶ steward approval ──▶ server confirmation
+```
+
+This is a deliberately bounded flow: lineage enables impact analysis, and policy-governed proposals enable reviewable intent, but only an authorized steward and the server’s execution checks can apply a governed change.[2] [4]
+
 ## Quick start
 
 DataGenie uses environment-specific configuration. Do not commit `.env` files, connection strings containing credentials, JWT signing keys, source passwords, or other secrets. The tracked [`.env.example`](.env.example) file defines the expected configuration shape.[3]
