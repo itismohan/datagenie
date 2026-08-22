@@ -114,7 +114,13 @@ jobs:
         run: docker compose --env-file .env -f infra/docker-compose.yml config -q
       - name: Validate staging Compose configuration
         run: |
-          sed -i 's|^DATAGENIE_ERROR_TRACKING_DSN=$|DATAGENIE_ERROR_TRACKING_DSN=https://public@example.invalid/1|' .env
+          cat >> .env <<'EOF'
+          DATAGENIE_ERROR_TRACKING_DSN=https://public@example.invalid/1
+          DATAGENIE_AUTH_OIDC_ISSUER=https://auth.example.invalid
+          DATAGENIE_AUTH_OIDC_AUDIENCE=datagenie-mcp
+          DATAGENIE_AUTH_OIDC_JWKS_URL=https://auth.example.invalid/.well-known/jwks.json
+          DATAGENIE_LEDGER_DATABASE_URL=postgresql+psycopg://datagenie:datagenie_ci_password@postgres:5432/datagenie
+          EOF
           docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compose.staging.yml config -q
       - name: Validate Prometheus configuration and alert rules
         run: docker run --rm -v "$PWD/infra:/etc/prometheus:ro" prom/prometheus:v2.54.1 promtool check config /etc/prometheus/prometheus.yml
