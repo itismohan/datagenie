@@ -121,6 +121,10 @@ Report suspected security issues privately to the repository maintainers. Do not
 
 Continuous integration validates SDD traceability, migration and regression coverage, service tests, dependency scanning, Compose topology, Prometheus configuration, and operational script syntax. A passing workflow is necessary but does not by itself establish a production release; the staged evidence gates remain authoritative.[1] [2]
 
+## License
+
+DataGenie is available under the [Apache License 2.0](license.md). The license grants broad rights to use, modify, and distribute the work subject to its terms, including preservation of license and attribution notices.
+
 ## References
 
 [1]: docs/launch-readiness-assessment.md "DataGenie Launch-Readiness Assessment"
