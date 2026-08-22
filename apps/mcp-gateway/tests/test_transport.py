@@ -48,7 +48,7 @@ def rpc(method: str, params: dict | None = None, request_id: int = 1) -> dict:
     return {"jsonrpc": "2.0", "id": request_id, "method": method, "params": params or {}}
 
 
-def test_metadata_capability_negotiation_and_four_tool_surface(monkeypatch, tmp_path) -> None:
+def test_metadata_capability_negotiation_and_proposal_only_tool_surface(monkeypatch, tmp_path) -> None:
     client, secret = build_client(monkeypatch, tmp_path)
     with client:
         metadata = client.get("/.well-known/oauth-protected-resource/mcp")
@@ -59,11 +59,22 @@ def test_metadata_capability_negotiation_and_four_tool_surface(monkeypatch, tmp_
         initialized = client.post("/mcp", json=rpc("initialize"), headers=headers(secret))
         assert initialized.status_code == 200
         assert initialized.json()["result"]["protocolVersion"] == "2026-07-28"
+        instructions = initialized.json()["result"]["instructions"]
+        assert "proposal-intent creation" in instructions
+        assert "never approve, execute, or directly mutate" in instructions
 
         tools = client.post("/mcp", json=rpc("tools/list", request_id=2), headers=headers(secret))
         advertised = {tool["name"] for tool in tools.json()["result"]["tools"]}
-        assert advertised == {"search_governed_assets", "get_asset_context", "get_quality_evidence", "analyze_lineage_impact"}
-        assert "check_data_use_policy" not in advertised
+        assert advertised == {
+            "search_governed_assets",
+            "get_asset_context",
+            "get_quality_evidence",
+            "analyze_lineage_impact",
+            "create_governance_proposal",
+            "request_certification_review",
+            "schedule_quality_check",
+        }
+        assert not {"approve_governance_proposal", "execute_governance_proposal", "update_asset", "certify_asset", "run_quality_check", "check_data_use_policy"}.intersection(advertised)
 
         resources = client.post("/mcp", json=rpc("resources/list", request_id=3), headers=headers(secret))
         assert len(resources.json()["result"]["resources"]) == 5
@@ -76,6 +87,7 @@ def test_rejects_unapproved_host_origin_and_protocol(monkeypatch, tmp_path) -> N
     with client:
         host_rejected = client.post("/mcp", json=rpc("initialize"), headers=headers(secret, host="unknown-host"))
         assert host_rejected.status_code == 401
+        assert "governance:propose" in host_rejected.headers["WWW-Authenticate"]
 
         origin_rejected = client.post("/mcp", json=rpc("initialize"), headers={**headers(secret), "Origin": "https://evil.example"})
         assert origin_rejected.status_code == 403

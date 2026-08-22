@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, Enum as SqlEnum, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, Enum as SqlEnum, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from app.core.config import get_settings
@@ -470,3 +470,91 @@ class GovernanceSuggestion(TenantScoped, Base):
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class GovernanceProposalType(str, Enum):
+    ASSET_CURATION = "asset_curation"
+    CERTIFICATION_REVIEW_REQUEST = "certification_review_request"
+    QUALITY_CHECK_SCHEDULE = "quality_check_schedule"
+
+
+class GovernanceProposalStatus(str, Enum):
+    PENDING_REVIEW = "pending_review"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+    EXECUTED = "executed"
+    BLOCKED = "blocked"
+
+
+class QualityScheduleRequestStatus(str, Enum):
+    PENDING = "pending"
+    READY = "ready"
+    CANCELLED = "cancelled"
+
+
+class GovernanceProposal(TenantScoped, Base):
+    __tablename__ = "governance_proposals"
+    __table_args__ = (
+        Index("ix_governance_proposals_tenant_status_created", "tenant_id", "status", "created_at"),
+        Index("ix_governance_proposals_tenant_resource", "tenant_id", "resource_type", "resource_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
+    proposal_type: Mapped[GovernanceProposalType] = mapped_column(SqlEnum(GovernanceProposalType), index=True, nullable=False)
+    resource_type: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    resource_id: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    proposal_text: Mapped[str] = mapped_column(Text, nullable=False)
+    change_diff: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    source_evidence: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list, nullable=False)
+    impact: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    source_channel: Mapped[str] = mapped_column(String(64), nullable=False)
+    initiating_subject: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
+    initiating_agent_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    initiating_model_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    initiating_host_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    source_request_id: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    policy_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    version_preconditions: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    proposal_hash: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    status: Mapped[GovernanceProposalStatus] = mapped_column(
+        SqlEnum(GovernanceProposalStatus), default=GovernanceProposalStatus.PENDING_REVIEW, index=True, nullable=False
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True, nullable=False)
+    approved_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    rejected_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    rejected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    approval_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    confirmation_nonce_digest: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    confirmation_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    execution_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    executed_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    executed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    execution_outcome: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    blocked_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    audit_event_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+
+class QualityCheckScheduleRequest(TenantScoped, Base):
+    __tablename__ = "quality_check_schedule_requests"
+    __table_args__ = (Index("ix_quality_schedule_requests_tenant_status", "tenant_id", "status"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
+    proposal_id: Mapped[str] = mapped_column(ForeignKey("governance_proposals.id", ondelete="CASCADE"), unique=True, index=True, nullable=False)
+    asset_id: Mapped[str] = mapped_column(ForeignKey("assets.id", ondelete="CASCADE"), index=True, nullable=False)
+    requested_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    schedule: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    status: Mapped[QualityScheduleRequestStatus] = mapped_column(
+        SqlEnum(QualityScheduleRequestStatus), default=QualityScheduleRequestStatus.PENDING, index=True, nullable=False
+    )
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)

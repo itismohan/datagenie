@@ -1,0 +1,59 @@
+change_id: "0003-proposal-only-governance-workflows"
+title: "Proposal-only governance workflows"
+status: "implementing"
+owners:
+  product: "Product owner (TBD)"
+  technical: "Solution architect (TBD)"
+  security: "Security owner (TBD)"
+  operations: "SRE/on-call owner (TBD)"
+requirements:
+  - id: "DG-PROPOSAL-001"
+    statement: "The platform SHALL persist tenant-scoped governance proposals with immutable intent, identity, policy, evidence, version, expiry, lifecycle, hash, and audit context."
+    implementation: ["apps/catalog-api/app/models/catalog.py", "apps/catalog-api/app/services/proposal_service.py", "apps/catalog-api/alembic/versions/20260822_10_governance_proposals.py"]
+    tests: ["apps/catalog-api/tests/test_governance_proposals.py::test_steward_inbox_approves_and_executes_a_proposal_once"]
+    evidence: ["evidence.md#build-and-traceability"]
+  - id: "DG-PROPOSAL-002"
+    statement: "The platform SHALL create governance proposals idempotently and reject idempotency-key reuse with a different canonical request."
+    implementation: ["apps/catalog-api/app/services/proposal_service.py", "apps/catalog-api/app/services/idempotency_service.py"]
+    tests: ["apps/catalog-api/tests/test_governance_proposals.py::test_creation_is_idempotent_and_body_conflicts_are_rejected"]
+    evidence: ["evidence.md#functional-and-security-proof"]
+  - id: "DG-PROPOSAL-003"
+    statement: "The platform SHALL capture deterministic policy evidence at proposal creation and fail closed for denied or unauditable decisions."
+    implementation: ["apps/catalog-api/app/services/proposal_service.py", "apps/catalog-api/app/services/policy_service.py"]
+    tests: ["apps/catalog-api/tests/test_policy_api.py::test_policy_endpoint_returns_explainable_allow_and_minimized_audit", "apps/catalog-api/tests/test_policy_matrix.py::test_role_tenant_asset_classification_purpose_action_matrix"]
+    evidence: ["evidence.md#functional-and-security-proof"]
+  - id: "DG-PROPOSAL-004"
+    statement: "The approval inbox SHALL present complete structured proposal context and allow only eligible human stewards to approve or reject it."
+    implementation: ["apps/catalog-api/app/api/v1/proposals.py", "apps/catalog-api/app/templates/governance_inbox.html"]
+    tests: ["apps/catalog-api/tests/test_governance_proposals.py::test_steward_inbox_approves_and_executes_a_proposal_once", "apps/catalog-api/tests/test_governance_proposals.py::test_foreign_tenant_cannot_read_or_approve_a_proposal"]
+    evidence: ["evidence.md#functional-and-security-proof"]
+  - id: "DG-PROPOSAL-005"
+    statement: "Approval SHALL issue a single-use confirmation nonce bound to the proposal hash, approver, approval version, and expiry."
+    implementation: ["apps/catalog-api/app/services/proposal_service.py", "apps/catalog-api/app/api/v1/proposals.py"]
+    tests: ["apps/catalog-api/tests/test_governance_proposals.py::test_steward_inbox_approves_and_executes_a_proposal_once"]
+    evidence: ["evidence.md#functional-and-security-proof"]
+  - id: "DG-PROPOSAL-006"
+    statement: "Execution SHALL atomically reauthorize, recheck policy and resource preconditions, and block stale, revoked, expired, cancelled, or mismatched proposals before mutation."
+    implementation: ["apps/catalog-api/app/services/proposal_service.py", "apps/catalog-api/app/services/policy_service.py"]
+    tests: ["apps/catalog-api/tests/test_governance_proposals.py::test_stale_resource_cancelled_and_revoked_approvals_cannot_mutate", "apps/catalog-api/tests/test_governance_proposals.py::test_expired_credentials_cannot_create_governance_proposals"]
+    evidence: ["evidence.md#functional-and-security-proof"]
+  - id: "DG-PROPOSAL-007"
+    statement: "The first release SHALL support validated typed proposals for asset curation, certification review requests, and quality check schedule requests only."
+    implementation: ["apps/catalog-api/app/services/proposal_service.py", "apps/catalog-api/app/schemas/proposals.py"]
+    tests: ["apps/catalog-api/tests/test_governance_proposals.py::test_bounded_certification_and_quality_schedule_handlers_require_steward_confirmation", "apps/catalog-api/tests/test_governance_proposals.py::test_steward_inbox_approves_and_executes_a_proposal_once"]
+    evidence: ["evidence.md#functional-and-security-proof"]
+  - id: "DG-PROPOSAL-008"
+    statement: "MCP SHALL expose only three proposal tools that return structured proposal evidence and never apply direct mutations or approvals."
+    implementation: ["apps/mcp-gateway/app/services/tool_execution.py", "apps/mcp-gateway/app/server.py"]
+    tests: ["apps/mcp-gateway/tests/test_proposal_tools.py::test_mcp_exposes_only_proposal_tools_and_never_executes_them"]
+    evidence: ["evidence.md#api-mcp-contract-review"]
+  - id: "DG-PROPOSAL-009"
+    statement: "Every proposal lifecycle transition SHALL persist minimized tenant-scoped audit evidence correlated to initiator identity and policy context."
+    implementation: ["apps/catalog-api/app/services/proposal_service.py", "apps/catalog-api/app/services/audit_service.py"]
+    tests: ["apps/catalog-api/tests/test_governance_proposals.py::test_steward_inbox_approves_and_executes_a_proposal_once", "apps/catalog-api/tests/test_policy_api.py::test_policy_endpoint_returns_explainable_allow_and_minimized_audit"]
+    evidence: ["evidence.md#functional-and-security-proof"]
+  - id: "DG-PROPOSAL-010"
+    statement: "Proposal processing SHALL be deterministic and safe under duplicate, concurrent, stale, and cancellation races."
+    implementation: ["apps/catalog-api/app/services/proposal_service.py", "apps/catalog-api/app/models/catalog.py"]
+    tests: ["apps/catalog-api/tests/test_governance_proposals.py::test_creation_is_idempotent_and_body_conflicts_are_rejected", "apps/catalog-api/tests/test_governance_proposals.py::test_stale_resource_cancelled_and_revoked_approvals_cannot_mutate"]
+    evidence: ["evidence.md#functional-and-security-proof"]

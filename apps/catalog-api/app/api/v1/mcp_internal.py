@@ -4,10 +4,12 @@ from sqlalchemy.orm import Session
 from app.core.security import Principal, get_mcp_delegated_principal
 from app.db.session import get_db
 from app.models.catalog import GovernanceDomain
+from app.schemas.proposals import GovernanceProposalCreate, ProposalCreated, ProposalRead
 from app.schemas.catalog import AssetRead
 from app.schemas.policy import PolicyContext, PolicyResource
 from app.services.catalog_service import get_asset_or_404, search_assets
 from app.services.policy_service import evaluate_access
+from app.services.proposal_service import create_proposal
 
 router = APIRouter()
 
@@ -113,3 +115,28 @@ def mcp_get_domain(
         "steward": domain.steward,
         "tenant_id": principal.tenant_id,
     }
+
+
+@router.post("/proposals", response_model=ProposalCreated, status_code=status.HTTP_201_CREATED)
+def mcp_create_governance_proposal(
+    payload: GovernanceProposalCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(get_mcp_delegated_principal),
+) -> dict:
+    if payload.source.channel != "mcp":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "mcp_proposal_source_invalid", "message": "The private MCP proposal endpoint requires source.channel=mcp."},
+        )
+    proposal = create_proposal(
+        db,
+        principal,
+        payload,
+        request_id=_request_id(request),
+        host_id=getattr(request.state, "mcp_host_id", None),
+    )
+    return ProposalCreated(
+        **ProposalRead.model_validate(proposal).model_dump(mode="json"),
+        inbox_uri=f"/api/v1/governance/inbox?proposal_id={proposal.id}",
+    )

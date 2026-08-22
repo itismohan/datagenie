@@ -132,12 +132,13 @@ requirements:
     evidence:
       - "evidence.md#operational-evidence"
   - id: "DG-MCP-READ-009"
-    statement: "The initial MCP surface SHALL remain read-only and exclude mutation, export, secret, arbitrary SQL, and arbitrary HTTP capabilities."
+    statement: "The original discovery tools SHALL remain read-only; the extended surface may create only steward-reviewed proposals and SHALL exclude direct mutation, approval, execution, export, secret, arbitrary SQL, and arbitrary HTTP capabilities."
     implementation:
       - "apps/mcp-gateway/app/server.py"
       - "apps/mcp-gateway/app/services/tool_execution.py"
     tests:
-      - "apps/mcp-gateway/tests/test_transport.py::test_metadata_capability_negotiation_and_four_tool_surface"
+      - "apps/mcp-gateway/tests/test_transport.py::test_metadata_capability_negotiation_and_proposal_only_tool_surface"
+      - "apps/mcp-gateway/tests/test_proposal_tools.py::test_mcp_exposes_only_proposal_tools_and_never_executes_them"
       - "apps/mcp-gateway/tests/test_transport.py::test_adversarial_identity_and_input_attempts_do_not_leak_results"
     contracts:
       - "contracts.md#tools"

@@ -1481,6 +1481,100 @@
         "title": "GlossaryTermReview",
         "type": "object"
       },
+      "GovernanceProposalCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "diff": {
+            "additionalProperties": true,
+            "title": "Diff",
+            "type": "object"
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "maxItems": 50,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "expires_in_seconds": {
+            "default": 86400,
+            "maximum": 604800.0,
+            "minimum": 300.0,
+            "title": "Expires In Seconds",
+            "type": "integer"
+          },
+          "impact": {
+            "additionalProperties": true,
+            "title": "Impact",
+            "type": "object"
+          },
+          "proposal_text": {
+            "maxLength": 10000,
+            "minLength": 10,
+            "title": "Proposal Text",
+            "type": "string"
+          },
+          "proposal_type": {
+            "$ref": "#/components/schemas/GovernanceProposalType"
+          },
+          "purpose": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Purpose",
+            "type": "string"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/ProposalResource"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ProposalSourceInput"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 5,
+            "title": "Title",
+            "type": "string"
+          },
+          "version_preconditions": {
+            "additionalProperties": true,
+            "title": "Version Preconditions",
+            "type": "object"
+          }
+        },
+        "required": [
+          "proposal_type",
+          "title",
+          "proposal_text",
+          "resource",
+          "purpose"
+        ],
+        "title": "GovernanceProposalCreate",
+        "type": "object"
+      },
+      "GovernanceProposalStatus": {
+        "enum": [
+          "pending_review",
+          "approved",
+          "rejected",
+          "cancelled",
+          "expired",
+          "executed",
+          "blocked"
+        ],
+        "title": "GovernanceProposalStatus",
+        "type": "string"
+      },
+      "GovernanceProposalType": {
+        "enum": [
+          "asset_curation",
+          "certification_review_request",
+          "quality_check_schedule"
+        ],
+        "title": "GovernanceProposalType",
+        "type": "string"
+      },
       "GovernanceSuggestionCreate": {
         "properties": {
           "asset_id": {
@@ -2047,6 +2141,1418 @@
           "resource_id"
         ],
         "title": "PolicyResource",
+        "type": "object"
+      },
+      "ProposalApproval": {
+        "properties": {
+          "approval_version": {
+            "title": "Approval Version",
+            "type": "integer"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "audit_event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audit Event Id"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "cancelled_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled By"
+          },
+          "change_diff": {
+            "additionalProperties": true,
+            "title": "Change Diff",
+            "type": "object"
+          },
+          "confirmation_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmation Expires At"
+          },
+          "confirmation_nonce": {
+            "title": "Confirmation Nonce",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "executed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executed At"
+          },
+          "executed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executed By"
+          },
+          "execution_attempts": {
+            "title": "Execution Attempts",
+            "type": "integer"
+          },
+          "execution_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Outcome"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "impact": {
+            "additionalProperties": true,
+            "title": "Impact",
+            "type": "object"
+          },
+          "initiating_agent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initiating Agent Id"
+          },
+          "initiating_host_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initiating Host Id"
+          },
+          "initiating_model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initiating Model Id"
+          },
+          "initiating_subject": {
+            "title": "Initiating Subject",
+            "type": "string"
+          },
+          "policy_snapshot": {
+            "additionalProperties": true,
+            "title": "Policy Snapshot",
+            "type": "object"
+          },
+          "proposal_hash": {
+            "title": "Proposal Hash",
+            "type": "string"
+          },
+          "proposal_text": {
+            "title": "Proposal Text",
+            "type": "string"
+          },
+          "proposal_type": {
+            "$ref": "#/components/schemas/GovernanceProposalType"
+          },
+          "rejected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected At"
+          },
+          "rejected_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected By"
+          },
+          "resource_id": {
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "resource_type": {
+            "title": "Resource Type",
+            "type": "string"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "source_channel": {
+            "title": "Source Channel",
+            "type": "string"
+          },
+          "source_evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Source Evidence",
+            "type": "array"
+          },
+          "source_request_id": {
+            "title": "Source Request Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/GovernanceProposalStatus"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version_preconditions": {
+            "additionalProperties": true,
+            "title": "Version Preconditions",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "proposal_type",
+          "resource_type",
+          "resource_id",
+          "title",
+          "proposal_text",
+          "change_diff",
+          "source_evidence",
+          "impact",
+          "source_channel",
+          "initiating_subject",
+          "initiating_agent_id",
+          "initiating_model_id",
+          "initiating_host_id",
+          "source_request_id",
+          "policy_snapshot",
+          "version_preconditions",
+          "proposal_hash",
+          "status",
+          "expires_at",
+          "approved_by",
+          "approved_at",
+          "rejected_by",
+          "rejected_at",
+          "cancelled_by",
+          "cancelled_at",
+          "review_note",
+          "approval_version",
+          "confirmation_expires_at",
+          "execution_attempts",
+          "executed_by",
+          "executed_at",
+          "execution_outcome",
+          "blocked_reason",
+          "audit_event_id",
+          "created_at",
+          "updated_at",
+          "confirmation_nonce"
+        ],
+        "title": "ProposalApproval",
+        "type": "object"
+      },
+      "ProposalCreated": {
+        "properties": {
+          "approval_version": {
+            "title": "Approval Version",
+            "type": "integer"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "audit_event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audit Event Id"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "cancelled_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled By"
+          },
+          "change_diff": {
+            "additionalProperties": true,
+            "title": "Change Diff",
+            "type": "object"
+          },
+          "confirmation_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmation Expires At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "executed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executed At"
+          },
+          "executed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executed By"
+          },
+          "execution_attempts": {
+            "title": "Execution Attempts",
+            "type": "integer"
+          },
+          "execution_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Outcome"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "impact": {
+            "additionalProperties": true,
+            "title": "Impact",
+            "type": "object"
+          },
+          "inbox_uri": {
+            "title": "Inbox Uri",
+            "type": "string"
+          },
+          "initiating_agent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initiating Agent Id"
+          },
+          "initiating_host_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initiating Host Id"
+          },
+          "initiating_model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initiating Model Id"
+          },
+          "initiating_subject": {
+            "title": "Initiating Subject",
+            "type": "string"
+          },
+          "policy_snapshot": {
+            "additionalProperties": true,
+            "title": "Policy Snapshot",
+            "type": "object"
+          },
+          "proposal_hash": {
+            "title": "Proposal Hash",
+            "type": "string"
+          },
+          "proposal_text": {
+            "title": "Proposal Text",
+            "type": "string"
+          },
+          "proposal_type": {
+            "$ref": "#/components/schemas/GovernanceProposalType"
+          },
+          "rejected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected At"
+          },
+          "rejected_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected By"
+          },
+          "resource_id": {
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "resource_type": {
+            "title": "Resource Type",
+            "type": "string"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "source_channel": {
+            "title": "Source Channel",
+            "type": "string"
+          },
+          "source_evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Source Evidence",
+            "type": "array"
+          },
+          "source_request_id": {
+            "title": "Source Request Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/GovernanceProposalStatus"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version_preconditions": {
+            "additionalProperties": true,
+            "title": "Version Preconditions",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "proposal_type",
+          "resource_type",
+          "resource_id",
+          "title",
+          "proposal_text",
+          "change_diff",
+          "source_evidence",
+          "impact",
+          "source_channel",
+          "initiating_subject",
+          "initiating_agent_id",
+          "initiating_model_id",
+          "initiating_host_id",
+          "source_request_id",
+          "policy_snapshot",
+          "version_preconditions",
+          "proposal_hash",
+          "status",
+          "expires_at",
+          "approved_by",
+          "approved_at",
+          "rejected_by",
+          "rejected_at",
+          "cancelled_by",
+          "cancelled_at",
+          "review_note",
+          "approval_version",
+          "confirmation_expires_at",
+          "execution_attempts",
+          "executed_by",
+          "executed_at",
+          "execution_outcome",
+          "blocked_reason",
+          "audit_event_id",
+          "created_at",
+          "updated_at",
+          "inbox_uri"
+        ],
+        "title": "ProposalCreated",
+        "type": "object"
+      },
+      "ProposalExecution": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmation_nonce": {
+            "maxLength": 255,
+            "minLength": 32,
+            "title": "Confirmation Nonce",
+            "type": "string"
+          },
+          "proposal_hash": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Proposal Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proposal_hash",
+          "confirmation_nonce"
+        ],
+        "title": "ProposalExecution",
+        "type": "object"
+      },
+      "ProposalExecutionRead": {
+        "properties": {
+          "approval_version": {
+            "title": "Approval Version",
+            "type": "integer"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "audit_event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audit Event Id"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "cancelled_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled By"
+          },
+          "change_diff": {
+            "additionalProperties": true,
+            "title": "Change Diff",
+            "type": "object"
+          },
+          "confirmation_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmation Expires At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "executed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executed At"
+          },
+          "executed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executed By"
+          },
+          "execution_attempts": {
+            "title": "Execution Attempts",
+            "type": "integer"
+          },
+          "execution_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Outcome"
+          },
+          "execution_result": {
+            "additionalProperties": true,
+            "title": "Execution Result",
+            "type": "object"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "impact": {
+            "additionalProperties": true,
+            "title": "Impact",
+            "type": "object"
+          },
+          "initiating_agent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initiating Agent Id"
+          },
+          "initiating_host_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initiating Host Id"
+          },
+          "initiating_model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initiating Model Id"
+          },
+          "initiating_subject": {
+            "title": "Initiating Subject",
+            "type": "string"
+          },
+          "policy_snapshot": {
+            "additionalProperties": true,
+            "title": "Policy Snapshot",
+            "type": "object"
+          },
+          "proposal_hash": {
+            "title": "Proposal Hash",
+            "type": "string"
+          },
+          "proposal_text": {
+            "title": "Proposal Text",
+            "type": "string"
+          },
+          "proposal_type": {
+            "$ref": "#/components/schemas/GovernanceProposalType"
+          },
+          "rejected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected At"
+          },
+          "rejected_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected By"
+          },
+          "resource_id": {
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "resource_type": {
+            "title": "Resource Type",
+            "type": "string"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "source_channel": {
+            "title": "Source Channel",
+            "type": "string"
+          },
+          "source_evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Source Evidence",
+            "type": "array"
+          },
+          "source_request_id": {
+            "title": "Source Request Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/GovernanceProposalStatus"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version_preconditions": {
+            "additionalProperties": true,
+            "title": "Version Preconditions",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "proposal_type",
+          "resource_type",
+          "resource_id",
+          "title",
+          "proposal_text",
+          "change_diff",
+          "source_evidence",
+          "impact",
+          "source_channel",
+          "initiating_subject",
+          "initiating_agent_id",
+          "initiating_model_id",
+          "initiating_host_id",
+          "source_request_id",
+          "policy_snapshot",
+          "version_preconditions",
+          "proposal_hash",
+          "status",
+          "expires_at",
+          "approved_by",
+          "approved_at",
+          "rejected_by",
+          "rejected_at",
+          "cancelled_by",
+          "cancelled_at",
+          "review_note",
+          "approval_version",
+          "confirmation_expires_at",
+          "execution_attempts",
+          "executed_by",
+          "executed_at",
+          "execution_outcome",
+          "blocked_reason",
+          "audit_event_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProposalExecutionRead",
+        "type": "object"
+      },
+      "ProposalRead": {
+        "properties": {
+          "approval_version": {
+            "title": "Approval Version",
+            "type": "integer"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "audit_event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audit Event Id"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "cancelled_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled By"
+          },
+          "change_diff": {
+            "additionalProperties": true,
+            "title": "Change Diff",
+            "type": "object"
+          },
+          "confirmation_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmation Expires At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "executed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executed At"
+          },
+          "executed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executed By"
+          },
+          "execution_attempts": {
+            "title": "Execution Attempts",
+            "type": "integer"
+          },
+          "execution_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Outcome"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "impact": {
+            "additionalProperties": true,
+            "title": "Impact",
+            "type": "object"
+          },
+          "initiating_agent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initiating Agent Id"
+          },
+          "initiating_host_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initiating Host Id"
+          },
+          "initiating_model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initiating Model Id"
+          },
+          "initiating_subject": {
+            "title": "Initiating Subject",
+            "type": "string"
+          },
+          "policy_snapshot": {
+            "additionalProperties": true,
+            "title": "Policy Snapshot",
+            "type": "object"
+          },
+          "proposal_hash": {
+            "title": "Proposal Hash",
+            "type": "string"
+          },
+          "proposal_text": {
+            "title": "Proposal Text",
+            "type": "string"
+          },
+          "proposal_type": {
+            "$ref": "#/components/schemas/GovernanceProposalType"
+          },
+          "rejected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected At"
+          },
+          "rejected_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected By"
+          },
+          "resource_id": {
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "resource_type": {
+            "title": "Resource Type",
+            "type": "string"
+          },
+          "review_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Note"
+          },
+          "source_channel": {
+            "title": "Source Channel",
+            "type": "string"
+          },
+          "source_evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Source Evidence",
+            "type": "array"
+          },
+          "source_request_id": {
+            "title": "Source Request Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/GovernanceProposalStatus"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version_preconditions": {
+            "additionalProperties": true,
+            "title": "Version Preconditions",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "proposal_type",
+          "resource_type",
+          "resource_id",
+          "title",
+          "proposal_text",
+          "change_diff",
+          "source_evidence",
+          "impact",
+          "source_channel",
+          "initiating_subject",
+          "initiating_agent_id",
+          "initiating_model_id",
+          "initiating_host_id",
+          "source_request_id",
+          "policy_snapshot",
+          "version_preconditions",
+          "proposal_hash",
+          "status",
+          "expires_at",
+          "approved_by",
+          "approved_at",
+          "rejected_by",
+          "rejected_at",
+          "cancelled_by",
+          "cancelled_at",
+          "review_note",
+          "approval_version",
+          "confirmation_expires_at",
+          "execution_attempts",
+          "executed_by",
+          "executed_at",
+          "execution_outcome",
+          "blocked_reason",
+          "audit_event_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProposalRead",
+        "type": "object"
+      },
+      "ProposalResource": {
+        "additionalProperties": false,
+        "properties": {
+          "resource_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "resource_type": {
+            "const": "asset",
+            "title": "Resource Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "resource_type",
+          "resource_id"
+        ],
+        "title": "ProposalResource",
+        "type": "object"
+      },
+      "ProposalReview": {
+        "additionalProperties": false,
+        "properties": {
+          "review_note": {
+            "maxLength": 5000,
+            "minLength": 3,
+            "title": "Review Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "review_note"
+        ],
+        "title": "ProposalReview",
+        "type": "object"
+      },
+      "ProposalSourceInput": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id"
+          },
+          "channel": {
+            "default": "api",
+            "enum": [
+              "api",
+              "mcp"
+            ],
+            "title": "Channel",
+            "type": "string"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          }
+        },
+        "title": "ProposalSourceInput",
         "type": "object"
       },
       "RetentionPolicyRead": {
@@ -5821,6 +7327,147 @@
         ]
       }
     },
+    "/api/v1/governance/inbox": {
+      "get": {
+        "operationId": "governance_inbox_api_v1_governance_inbox_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "proposal_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Proposal Id"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "A valid bearer token is required.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A valid bearer token is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "The authenticated principal is not authorized for this operation.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The authenticated principal is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "rate_limit_exceeded": {
+                    "value": {
+                      "error": {
+                        "code": "rate_limit_exceeded",
+                        "message": "Too many requests. Retry after the supplied interval.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too many requests. Retry after the supplied interval."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "internal_error": {
+                    "value": {
+                      "error": {
+                        "code": "internal_error",
+                        "message": "An unexpected server error occurred.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "An unexpected server error occurred."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Governance Inbox",
+        "tags": [
+          "Governance proposals"
+        ]
+      }
+    },
     "/api/v1/governance/metrics/discovery-success": {
       "get": {
         "operationId": "get_discovery_success_metric_api_v1_governance_metrics_discovery_success_get",
@@ -5954,6 +7601,984 @@
         "summary": "Get Discovery Success Metric",
         "tags": [
           "Governance"
+        ]
+      }
+    },
+    "/api/v1/governance/proposals": {
+      "get": {
+        "operationId": "get_governance_proposals_api_v1_governance_proposals_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status_filter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/GovernanceProposalStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status Filter"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProposalRead"
+                  },
+                  "title": "Response Get Governance Proposals Api V1 Governance Proposals Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "A valid bearer token is required.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A valid bearer token is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "The authenticated principal is not authorized for this operation.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The authenticated principal is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "rate_limit_exceeded": {
+                    "value": {
+                      "error": {
+                        "code": "rate_limit_exceeded",
+                        "message": "Too many requests. Retry after the supplied interval.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too many requests. Retry after the supplied interval."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "internal_error": {
+                    "value": {
+                      "error": {
+                        "code": "internal_error",
+                        "message": "An unexpected server error occurred.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "An unexpected server error occurred."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Get Governance Proposals",
+        "tags": [
+          "Governance proposals"
+        ]
+      },
+      "post": {
+        "operationId": "create_governance_proposal_api_v1_governance_proposals_post",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GovernanceProposalCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "A valid bearer token is required.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A valid bearer token is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "The authenticated principal is not authorized for this operation.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The authenticated principal is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "rate_limit_exceeded": {
+                    "value": {
+                      "error": {
+                        "code": "rate_limit_exceeded",
+                        "message": "Too many requests. Retry after the supplied interval.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too many requests. Retry after the supplied interval."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "internal_error": {
+                    "value": {
+                      "error": {
+                        "code": "internal_error",
+                        "message": "An unexpected server error occurred.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "An unexpected server error occurred."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Create Governance Proposal",
+        "tags": [
+          "Governance proposals"
+        ]
+      }
+    },
+    "/api/v1/governance/proposals/{proposal_id}": {
+      "get": {
+        "operationId": "get_governance_proposal_api_v1_governance_proposals__proposal_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "A valid bearer token is required.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A valid bearer token is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "The authenticated principal is not authorized for this operation.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The authenticated principal is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "rate_limit_exceeded": {
+                    "value": {
+                      "error": {
+                        "code": "rate_limit_exceeded",
+                        "message": "Too many requests. Retry after the supplied interval.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too many requests. Retry after the supplied interval."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "internal_error": {
+                    "value": {
+                      "error": {
+                        "code": "internal_error",
+                        "message": "An unexpected server error occurred.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "An unexpected server error occurred."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Get Governance Proposal",
+        "tags": [
+          "Governance proposals"
+        ]
+      }
+    },
+    "/api/v1/governance/proposals/{proposal_id}/approve": {
+      "post": {
+        "operationId": "approve_governance_proposal_api_v1_governance_proposals__proposal_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalApproval"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "A valid bearer token is required.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A valid bearer token is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "The authenticated principal is not authorized for this operation.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The authenticated principal is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "rate_limit_exceeded": {
+                    "value": {
+                      "error": {
+                        "code": "rate_limit_exceeded",
+                        "message": "Too many requests. Retry after the supplied interval.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too many requests. Retry after the supplied interval."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "internal_error": {
+                    "value": {
+                      "error": {
+                        "code": "internal_error",
+                        "message": "An unexpected server error occurred.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "An unexpected server error occurred."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Approve Governance Proposal",
+        "tags": [
+          "Governance proposals"
+        ]
+      }
+    },
+    "/api/v1/governance/proposals/{proposal_id}/cancel": {
+      "post": {
+        "operationId": "cancel_governance_proposal_api_v1_governance_proposals__proposal_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "A valid bearer token is required.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A valid bearer token is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "The authenticated principal is not authorized for this operation.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The authenticated principal is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "rate_limit_exceeded": {
+                    "value": {
+                      "error": {
+                        "code": "rate_limit_exceeded",
+                        "message": "Too many requests. Retry after the supplied interval.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too many requests. Retry after the supplied interval."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "internal_error": {
+                    "value": {
+                      "error": {
+                        "code": "internal_error",
+                        "message": "An unexpected server error occurred.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "An unexpected server error occurred."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Cancel Governance Proposal",
+        "tags": [
+          "Governance proposals"
+        ]
+      }
+    },
+    "/api/v1/governance/proposals/{proposal_id}/execute": {
+      "post": {
+        "operationId": "execute_governance_proposal_api_v1_governance_proposals__proposal_id__execute_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalExecution"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalExecutionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "A valid bearer token is required.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A valid bearer token is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "The authenticated principal is not authorized for this operation.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The authenticated principal is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "rate_limit_exceeded": {
+                    "value": {
+                      "error": {
+                        "code": "rate_limit_exceeded",
+                        "message": "Too many requests. Retry after the supplied interval.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too many requests. Retry after the supplied interval."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "internal_error": {
+                    "value": {
+                      "error": {
+                        "code": "internal_error",
+                        "message": "An unexpected server error occurred.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "An unexpected server error occurred."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Execute Governance Proposal",
+        "tags": [
+          "Governance proposals"
+        ]
+      }
+    },
+    "/api/v1/governance/proposals/{proposal_id}/reject": {
+      "post": {
+        "operationId": "reject_governance_proposal_api_v1_governance_proposals__proposal_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/RequestId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "error": {
+                        "code": "unauthorized",
+                        "message": "A valid bearer token is required.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "A valid bearer token is required."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "forbidden": {
+                    "value": {
+                      "error": {
+                        "code": "forbidden",
+                        "message": "The authenticated principal is not authorized for this operation.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "The authenticated principal is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "rate_limit_exceeded": {
+                    "value": {
+                      "error": {
+                        "code": "rate_limit_exceeded",
+                        "message": "Too many requests. Retry after the supplied interval.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Too many requests. Retry after the supplied interval."
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "internal_error": {
+                    "value": {
+                      "error": {
+                        "code": "internal_error",
+                        "message": "An unexpected server error occurred.",
+                        "request_id": "b9ce11cc-4e68-4f4c-9e0f-4c1f0e2c6e2d"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "An unexpected server error occurred."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Reject Governance Proposal",
+        "tags": [
+          "Governance proposals"
         ]
       }
     },

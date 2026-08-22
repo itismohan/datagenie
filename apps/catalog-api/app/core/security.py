@@ -109,14 +109,18 @@ def get_mcp_delegated_principal(
         subject = context.get("subject")
         tenant_id = context.get("tenant_id")
         roles = context.get("roles")
+        host_id = context.get("host_id")
         if not isinstance(subject, str) or not subject or not isinstance(tenant_id, str) or not tenant_id:
             raise ValueError("identity")
         if not isinstance(roles, list) or not all(isinstance(role, str) and role in VALID_ROLES for role in roles):
             raise ValueError("roles")
+        if not isinstance(host_id, str) or not host_id:
+            raise ValueError("host")
     except Exception as exc:
         raise _unauthorized("The MCP service identity packet is invalid or expired.") from exc
     principal = Principal(subject=subject, tenant_id=tenant_id, roles=frozenset(roles))
     request.state.principal = principal
+    request.state.mcp_host_id = host_id
     set_current_tenant_id(principal.tenant_id)
     session = getattr(request.state, "db", None)
     if session is not None:

@@ -26,6 +26,32 @@ class FakeClient:
             decision_version="1.0.0",
         )
 
+    async def create_governance_proposal(self, principal, request_id, payload):
+        now = datetime.now(timezone.utc)
+        return {
+            "id": "proposal-1",
+            "proposal_hash": "a" * 64,
+            "status": "pending_review",
+            "expires_at": (now + timedelta(hours=1)).isoformat(),
+            "inbox_uri": "/api/v1/governance/inbox?proposal_id=proposal-1",
+            "proposal_type": payload["proposal_type"],
+            "impact": payload["impact"],
+            "initiating_subject": principal.subject,
+            "initiating_agent_id": payload["source"].get("agent_id"),
+            "initiating_model_id": payload["source"].get("model_id"),
+            "initiating_host_id": principal.host_id,
+            "source_evidence": payload.get("evidence", []),
+            "policy_snapshot": {
+                "outcome": "allow",
+                "decision_version": "1.0.0",
+                "rule_ids": ["DG-POLICY-RBAC-ALLOW"],
+                "evidence": [{"type": "asset", "reference": "asset:asset-1"}],
+                "obligations": [],
+                "evaluated_at": now.isoformat(),
+                "expires_at": (now + timedelta(minutes=5)).isoformat(),
+            },
+        }
+
     async def search_assets(self, _principal, _request_id, _params):
         return {"items": [{"asset": {"id": "asset-1", "name": "payments"}, "policy": {"outcome": "allow"}}], "total": 1, "visible_total": 1, "facets": {}, "index_fresh_at": "2026-08-22T00:00:00Z"}
 
@@ -57,7 +83,8 @@ def make_client(tmp_path, outcome: str = "allow_with_obligations") -> tuple[Test
 
 def headers(secret: str) -> dict[str, str]:
     token = jwt.encode(
-        {"sub": "analyst@example.com", "tenant_id": "internal-beta", "roles": ["analyst"], "scope": "catalog:read quality:read lineage:read", "aud": "datagenie-mcp", "exp": datetime.now(timezone.utc) + timedelta(minutes=5)},
+        {"sub": "analyst@example.com", "tenant_id": "internal-beta", "roles": ["analyst"],             "scope": "catalog:read quality:read lineage:read governance:propose",
+ "aud": "datagenie-mcp", "exp": datetime.now(timezone.utc) + timedelta(minutes=5)},
         secret,
         algorithm="HS256",
     )
@@ -98,6 +125,27 @@ def test_all_remaining_read_tools_return_structured_evidence_packets(tmp_path) -
             assert body["provenance"] and body["evidence"] and body["timestamp"]
             assert body["confidence"] >= 0
             assert "data" in body
+
+
+def test_proposal_tools_create_intent_only_with_structured_policy_and_no_confirmation_nonce(tmp_path) -> None:
+    client, secret = make_client(tmp_path)
+    cases = [
+        ("create_governance_proposal", {"proposal_type": "asset_curation", "asset_id": "asset-1", "title": "Curate payments description", "proposal_text": "Update metadata after stewardship review.", "purpose": "metadata stewardship", "diff": {"description": "Payments facts"}, "technical_version": 1, "agent_id": "agent-1", "model_id": "approved-model"}),
+        ("request_certification_review", {"asset_id": "asset-1", "purpose": "certification stewardship", "technical_version": 1}),
+        ("schedule_quality_check", {"asset_id": "asset-1", "purpose": "quality stewardship", "frequency": "daily", "rule_types": ["completeness"], "technical_version": 1}),
+    ]
+    with client:
+        for tool_name, arguments in cases:
+            response = client.post("/mcp", json=call(tool_name, arguments), headers=headers(secret))
+            assert response.status_code == 200, response.text
+            body = response.json()["result"]["structuredContent"]
+            assert body["policy"]["outcome"] == "allow"
+            assert body["data"]["status"] == "pending_review"
+            assert body["data"]["proposal_hash"] == "a" * 64
+            assert body["data"]["inbox_uri"].startswith("/api/v1/governance/inbox")
+            assert "confirmation_nonce" not in body["data"]
+            assert "confirmation_nonce:never_returned" in body["redactions"]
+            assert "direct_mutation:never_performed" in body["redactions"]
 
 
 def test_tool_call_denial_is_safe_jsonrpc_error_without_context_payload(tmp_path) -> None:

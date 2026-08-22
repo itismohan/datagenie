@@ -101,6 +101,17 @@ class DataGenieClient:
         )
         return PolicyPacket.model_validate(response)
 
+    async def create_governance_proposal(self, principal: Principal, request_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Create intent only through the private signed catalog proposal endpoint."""
+        return await self._request(
+            self.settings.downstream_catalog_url,
+            "POST",
+            "/api/v1/internal/mcp/proposals",
+            principal,
+            request_id,
+            payload=payload,
+        )
+
     async def search_assets(self, principal: Principal, request_id: str, params: dict[str, Any]) -> dict[str, Any]:
         return await self._request(
             self.settings.downstream_catalog_url,

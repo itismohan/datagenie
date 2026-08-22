@@ -108,6 +108,9 @@ SUPPORTED_ACTIONS: dict[str, tuple[str, bool]] = {
     "quality_evidence.update": ("asset", False),
     "classification.review": ("classification_finding", False),
     "certification.decide": ("certification_request", False),
+    "governance.proposal.create": ("asset", False),
+    "governance.proposal.approve": ("asset", False),
+    "governance.proposal.execute": ("asset", False),
 }
 
 
@@ -155,7 +158,9 @@ def _role_allows(principal: Principal, action: str) -> bool:
         return bool(principal.roles.intersection(readers))
     if action == "asset.curate":
         return bool(principal.roles.intersection({ROLE_DATA_STEWARD, ROLE_DATA_OWNER}))
-    if action in {"quality_evidence.update", "classification.review", "certification.decide"}:
+    if action == "governance.proposal.create":
+        return bool(principal.roles.intersection(readers))
+    if action in {"governance.proposal.approve", "governance.proposal.execute", "quality_evidence.update", "classification.review", "certification.decide"}:
         return ROLE_DATA_STEWARD in principal.roles
     return False
 

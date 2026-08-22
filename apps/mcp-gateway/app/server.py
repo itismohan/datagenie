@@ -56,7 +56,7 @@ def _metadata(settings: Settings) -> dict:
     return {
         "resource": endpoint,
         "authorization_servers": sorted(settings.csv(settings.mcp_authorization_servers)),
-        "scopes_supported": ["catalog:read", "quality:read", "lineage:read"],
+        "scopes_supported": ["catalog:read", "quality:read", "lineage:read", "governance:propose"],
         "bearer_methods_supported": ["header"],
         "resource_documentation": f"{endpoint.rsplit('/mcp', 1)[0]}/docs/mcp-authorization-reference",
     }
@@ -87,6 +87,24 @@ def _tool_definitions() -> list[dict]:
             "description": "Retrieve bounded governed lineage impact and typed provenance; never executes graph mutation.",
             "inputSchema": {"type": "object", "properties": {"asset_id": {"type": "string"}, "purpose": {"type": "string"}, "direction": {"type": "string", "enum": ["upstream", "downstream", "both"]}, "depth": {"type": "integer", "minimum": 1, "maximum": 3}}, "required": ["asset_id", "purpose"], "additionalProperties": False},
             "outputSchema": {"type": "object", "required": ["policy", "provenance", "evidence", "timestamp", "confidence", "data"]},
+        },
+        {
+            "name": "create_governance_proposal",
+            "description": "Create a governance proposal for steward review. It never applies, approves, or executes the requested change.",
+            "inputSchema": {"type": "object", "properties": {"proposal_type": {"type": "string", "enum": ["asset_curation", "certification_review_request", "quality_check_schedule"]}, "asset_id": {"type": "string"}, "title": {"type": "string"}, "proposal_text": {"type": "string"}, "purpose": {"type": "string"}, "diff": {"type": "object"}, "evidence": {"type": "array"}, "impact": {"type": "object"}, "technical_version": {"type": "integer", "minimum": 1}, "agent_id": {"type": "string"}, "model_id": {"type": "string"}}, "required": ["proposal_type", "asset_id", "title", "proposal_text", "purpose", "technical_version"], "additionalProperties": False},
+            "outputSchema": {"type": "object", "required": ["proposal_id", "proposal_hash", "status", "expires_at", "inbox_uri", "source"]},
+        },
+        {
+            "name": "request_certification_review",
+            "description": "Create a certification-review proposal for steward approval. It never certifies an asset.",
+            "inputSchema": {"type": "object", "properties": {"asset_id": {"type": "string"}, "purpose": {"type": "string"}, "note": {"type": "string"}, "evidence": {"type": "array"}, "technical_version": {"type": "integer", "minimum": 1}, "agent_id": {"type": "string"}, "model_id": {"type": "string"}}, "required": ["asset_id", "purpose", "technical_version"], "additionalProperties": False},
+            "outputSchema": {"type": "object", "required": ["proposal_id", "proposal_hash", "status", "inbox_uri"]},
+        },
+        {
+            "name": "schedule_quality_check",
+            "description": "Create a quality-check scheduling proposal for steward approval. It never dispatches a quality job.",
+            "inputSchema": {"type": "object", "properties": {"asset_id": {"type": "string"}, "purpose": {"type": "string"}, "frequency": {"type": "string", "enum": ["daily", "weekly", "manual"]}, "rule_types": {"type": "array"}, "evidence": {"type": "array"}, "technical_version": {"type": "integer", "minimum": 1}, "agent_id": {"type": "string"}, "model_id": {"type": "string"}}, "required": ["asset_id", "purpose", "frequency", "technical_version"], "additionalProperties": False},
+            "outputSchema": {"type": "object", "required": ["proposal_id", "proposal_hash", "status", "inbox_uri"]},
         },
     ]
 
@@ -240,7 +258,7 @@ def create_app(application: McpApplication | None = None) -> FastAPI:
                 _json_error(None, -32003, "Unauthorized MCP request.", "mcp_unauthorized", request_id).model_dump(),
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 headers={
-                    "WWW-Authenticate": f'Bearer resource_metadata="{app_runtime.settings.mcp_resource_base_url.rsplit("/mcp", 1)[0]}/.well-known/oauth-protected-resource" scope="catalog:read quality:read lineage:read"',
+                    "WWW-Authenticate": f'Bearer resource_metadata="{app_runtime.settings.mcp_resource_base_url.rsplit("/mcp", 1)[0]}/.well-known/oauth-protected-resource" scope="catalog:read quality:read lineage:read governance:propose"',
                     app_runtime.settings.request_id_header: request_id,
                 },
             )
@@ -264,7 +282,7 @@ def create_app(application: McpApplication | None = None) -> FastAPI:
         try:
             result: dict
             if payload.method == "initialize":
-                result = {"protocolVersion": version, "capabilities": {"tools": {}, "resources": {}, "prompts": {}}, "serverInfo": {"name": "datagenie-governed-discovery", "version": "0.1.0"}, "instructions": "Internal-only, read-only governed discovery. Every result is structured and evidence-bearing."}
+                result = {"protocolVersion": version, "capabilities": {"tools": {}, "resources": {}, "prompts": {}}, "serverInfo": {"name": "datagenie-governed-discovery", "version": "0.1.0"}, "instructions": "Internal-only governed discovery plus proposal-intent creation. Proposal tools never approve, execute, or directly mutate governed resources. Every result is structured and evidence-bearing."}
             elif payload.method == "tools/list":
                 result = {"tools": _tool_definitions()}
             elif payload.method == "tools/call":

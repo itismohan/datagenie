@@ -142,3 +142,45 @@ class LineageArguments(BaseModel):
     purpose: str = Field(min_length=3, max_length=500)
     direction: Literal["upstream", "downstream", "both"] = "both"
     depth: int = Field(default=2, ge=1, le=3)
+
+
+class ProposalArguments(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    proposal_type: Literal["asset_curation", "certification_review_request", "quality_check_schedule"]
+    asset_id: str = Field(min_length=1, max_length=64)
+    title: str = Field(min_length=5, max_length=255)
+    proposal_text: str = Field(min_length=10, max_length=10_000)
+    purpose: str = Field(min_length=3, max_length=500)
+    diff: dict[str, Any] = Field(default_factory=dict)
+    evidence: list[dict[str, Any]] = Field(default_factory=list, max_length=50)
+    impact: dict[str, Any] = Field(default_factory=dict)
+    technical_version: int = Field(ge=1)
+    agent_id: str | None = Field(default=None, max_length=255)
+    model_id: str | None = Field(default=None, max_length=255)
+    expires_in_seconds: int = Field(default=86_400, ge=300, le=604_800)
+
+
+class CertificationReviewArguments(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    asset_id: str = Field(min_length=1, max_length=64)
+    purpose: str = Field(min_length=3, max_length=500)
+    note: str | None = Field(default=None, max_length=5_000)
+    evidence: list[dict[str, Any]] = Field(default_factory=list, max_length=50)
+    technical_version: int = Field(ge=1)
+    agent_id: str | None = Field(default=None, max_length=255)
+    model_id: str | None = Field(default=None, max_length=255)
+
+
+class QualityScheduleArguments(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    asset_id: str = Field(min_length=1, max_length=64)
+    purpose: str = Field(min_length=3, max_length=500)
+    frequency: Literal["daily", "weekly", "manual"]
+    rule_types: list[Literal["completeness", "uniqueness", "validity", "freshness", "referential_integrity", "distribution_anomaly"]] = Field(default_factory=list, max_length=6)
+    evidence: list[dict[str, Any]] = Field(default_factory=list, max_length=50)
+    technical_version: int = Field(ge=1)
+    agent_id: str | None = Field(default=None, max_length=255)
+    model_id: str | None = Field(default=None, max_length=255)

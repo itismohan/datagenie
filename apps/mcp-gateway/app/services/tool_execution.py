@@ -18,7 +18,10 @@ from app.core.observability import (
 )
 from app.schemas import (
     AssetArguments,
+    CertificationReviewArguments,
     LineageArguments,
+    ProposalArguments,
+    QualityScheduleArguments,
     PolicyEvidence,
     PolicyPacket,
     Principal,
@@ -35,6 +38,9 @@ TOOL_SCOPES = {
     "get_asset_context": ("catalog:read",),
     "get_quality_evidence": ("quality:read",),
     "analyze_lineage_impact": ("lineage:read",),
+    "create_governance_proposal": ("governance:propose",),
+    "request_certification_review": ("governance:propose",),
+    "schedule_quality_check": ("governance:propose",),
 }
 
 
@@ -98,7 +104,7 @@ class ToolExecutor:
         if self.settings.mcp_kill_switch_enabled or name in self.settings.csv(self.settings.mcp_disabled_tools):
             raise McpToolError("tool_disabled", "This MCP tool is disabled for the internal beta.", status.HTTP_503_SERVICE_UNAVAILABLE)
         if name not in TOOL_SCOPES:
-            raise McpToolError("mcp_method_not_found", "The requested MCP tool is not available in the read-only beta.", status.HTTP_404_NOT_FOUND)
+            raise McpToolError("mcp_method_not_found", "The requested MCP tool is not available in the internal beta.", status.HTTP_404_NOT_FOUND)
         require_scope(principal, *TOOL_SCOPES[name])
         started = perf_counter()
         digest = _digest(arguments)
@@ -162,6 +168,75 @@ class ToolExecutor:
                     downstream,
                     confidence=0.7 if downstream["state"] == "current" else 0.3,
                     redactions=["row_samples:never_returned", "source_secrets:never_returned"],
+                )
+            elif name in {"create_governance_proposal", "request_certification_review", "schedule_quality_check"}:
+                if name == "create_governance_proposal":
+                    parsed = ProposalArguments.model_validate(arguments)
+                    proposal_payload = {
+                        "proposal_type": parsed.proposal_type,
+                        "title": parsed.title,
+                        "proposal_text": parsed.proposal_text,
+                        "resource": {"resource_type": "asset", "resource_id": parsed.asset_id},
+                        "purpose": parsed.purpose,
+                        "diff": parsed.diff,
+                        "evidence": parsed.evidence,
+                        "impact": parsed.impact,
+                        "version_preconditions": {"technical_version": parsed.technical_version},
+                        "source": {"channel": "mcp", "agent_id": parsed.agent_id, "model_id": parsed.model_id},
+                        "expires_in_seconds": parsed.expires_in_seconds,
+                    }
+                elif name == "request_certification_review":
+                    parsed = CertificationReviewArguments.model_validate(arguments)
+                    proposal_payload = {
+                        "proposal_type": "certification_review_request",
+                        "title": "Request certification review",
+                        "proposal_text": "Request steward review for certification; no certification is applied until an approved proposal is confirmed.",
+                        "resource": {"resource_type": "asset", "resource_id": parsed.asset_id},
+                        "purpose": parsed.purpose,
+                        "diff": {"note": parsed.note} if parsed.note else {},
+                        "evidence": parsed.evidence,
+                        "impact": {"summary": "Creates a pending certification review request only", "risk_level": "medium"},
+                        "version_preconditions": {"technical_version": parsed.technical_version},
+                        "source": {"channel": "mcp", "agent_id": parsed.agent_id, "model_id": parsed.model_id},
+                    }
+                else:
+                    parsed = QualityScheduleArguments.model_validate(arguments)
+                    proposal_payload = {
+                        "proposal_type": "quality_check_schedule",
+                        "title": "Schedule explainable quality check",
+                        "proposal_text": "Request a steward-approved quality check schedule; no worker job is dispatched by this MCP call.",
+                        "resource": {"resource_type": "asset", "resource_id": parsed.asset_id},
+                        "purpose": parsed.purpose,
+                        "diff": {"schedule": {"frequency": parsed.frequency, "rule_types": parsed.rule_types}},
+                        "evidence": parsed.evidence,
+                        "impact": {"summary": "Creates a pending quality schedule request only", "risk_level": "medium"},
+                        "version_preconditions": {"technical_version": parsed.technical_version},
+                        "source": {"channel": "mcp", "agent_id": parsed.agent_id, "model_id": parsed.model_id},
+                    }
+                downstream = await self.client.create_governance_proposal(principal, request_id, proposal_payload)
+                policy = PolicyPacket.model_validate(downstream["policy_snapshot"])
+                result = _result(
+                    request_id,
+                    policy,
+                    [{"source": "catalog-proposal-api", "source_request_id": request_id, "retrieved_at": datetime.now(timezone.utc)}],
+                    [*policy.evidence, *downstream.get("source_evidence", [])],
+                    {
+                        "proposal_id": downstream["id"],
+                        "proposal_hash": downstream["proposal_hash"],
+                        "status": downstream["status"],
+                        "expires_at": downstream["expires_at"],
+                        "inbox_uri": downstream["inbox_uri"],
+                        "proposal_type": downstream["proposal_type"],
+                        "impact": downstream["impact"],
+                        "source": {
+                            "subject": downstream["initiating_subject"],
+                            "agent_id": downstream.get("initiating_agent_id"),
+                            "model_id": downstream.get("initiating_model_id"),
+                            "host_id": downstream.get("initiating_host_id"),
+                        },
+                    },
+                    confidence=1.0,
+                    redactions=["confirmation_nonce:never_returned", "direct_mutation:never_performed"],
                 )
             else:
                 parsed = LineageArguments.model_validate(arguments)
