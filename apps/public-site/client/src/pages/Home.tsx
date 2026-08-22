@@ -170,6 +170,7 @@ export default function Home() {
           </div>
           <div className="hero-visual" aria-label="DataGenie governed intelligence constellation">
             <div className="hero-network" aria-hidden="true"><span /><span /><span /><span /><i /><i /><i /></div>
+            <div className="hero-brand-emblem"><img src={LOGO_URL} alt="DataGenie AI brand mascot" /></div>
             <div className="hero-console">
               <div className="console-top"><span className="console-pulse" /><span>Governed asset context</span><code>trusted</code></div>
               <div className="console-row"><span>Owner</span><strong>Finance data stewardship</strong></div>
