@@ -26,11 +26,6 @@ import {
 } from "lucide-react";
 
 const LOGO_URL = `${import.meta.env.BASE_URL}datagenie.png`;
-const HERO_URL = "/manus-storage/datagenie-trust-fabric-hero_201650c3.png";
-const EVIDENCE_URL = "/manus-storage/datagenie-governance-evidence_5c3d2daa.png";
-const LINEAGE_URL = "/manus-storage/datagenie-lineage-lattice_73375db1.png";
-const WORKFLOW_URL = "/manus-storage/datagenie-workflow-evidence_28665d85.png";
-const CONSTELLATION_URL = "/manus-storage/datagenie-constellation-mark_5febcd61.png";
 
 const navItems = [
   ["Platform", "#platform"],
@@ -92,11 +87,47 @@ const docs = {
 };
 
 function SectionMark({ children }: { children: string }) {
-  return <p className="section-mark"><span className="signal-rail"><img src={CONSTELLATION_URL} alt="" /></span><span className="section-line" />{children}</p>;
+  return <p className="section-mark"><span className="signal-rail" aria-hidden="true"><span /></span><span className="section-line" />{children}</p>;
 }
 
 function EvidenceLine({ children }: { children: string }) {
   return <p className="evidence-line"><CheckCircle2 size={15} />{children}</p>;
+}
+
+function AssetDossierVisual() {
+  return <div className="asset-dossier" role="img" aria-label="Example governed asset record with ownership, classification, freshness and quality evidence">
+    <div className="dossier-chrome"><span className="dossier-kicker">Governed asset dossier</span><span className="dossier-status">CURRENT</span></div>
+    <div className="dossier-title"><Database size={19} /><div><strong>finance.settlement_facts</strong><span>Production · trusted data product</span></div></div>
+    <div className="dossier-grid"><div><span>Accountable owner</span><strong>Finance Operations</strong></div><div><span>Classification</span><strong>Confidential</strong></div><div><span>Freshness evidence</span><strong>14 min ago</strong></div><div><span>Quality signal</span><strong className="is-healthy">98.6% explained</strong></div></div>
+    <div className="dossier-footer"><span>metadata v42</span><span>● evidence attached</span></div>
+  </div>;
+}
+
+function ProposalBoundaryVisual() {
+  return <div className="proposal-visual" role="img" aria-label="Proposal workflow from agent intent through steward review and server confirmation">
+    <div className="proposal-node proposal-node--agent"><span>01</span><strong>Agent intent</strong><small>Evidence + diff</small></div>
+    <div className="proposal-arrow" aria-hidden="true">→</div>
+    <div className="proposal-node proposal-node--inbox"><span>02</span><strong>Steward inbox</strong><small>Human decision</small></div>
+    <div className="proposal-arrow" aria-hidden="true">→</div>
+    <div className="proposal-node proposal-node--server"><span>03</span><strong>Server confirm</strong><small>Hash + nonce + policy</small></div>
+    <div className="proposal-boundary"><LockKeyhole size={15} /><span>authority boundary</span></div>
+  </div>;
+}
+
+function LineageFlowVisual() {
+  return <div className="lineage-flow" role="img" aria-label="Sample data lineage flow from source systems through transformations to business reports">
+    <div className="lineage-flow-head"><span>Example data flow</span><span>Confidence: bounded</span></div>
+    <div className="lineage-lanes">
+      <div className="lineage-stage lineage-stage--source"><span className="stage-label">Sources</span><strong>PostgreSQL</strong><strong>Snowflake</strong></div>
+      <div className="lineage-connector" aria-hidden="true">→</div>
+      <div className="lineage-stage lineage-stage--transform"><span className="stage-label">Transform</span><strong>dbt model</strong><small>settlement_rollup</small></div>
+      <div className="lineage-connector" aria-hidden="true">→</div>
+      <div className="lineage-stage lineage-stage--product"><span className="stage-label">Data product</span><strong>Finance metrics</strong><small>quality monitored</small></div>
+      <div className="lineage-connector" aria-hidden="true">→</div>
+      <div className="lineage-stage lineage-stage--consumer"><span className="stage-label">Consumers</span><strong>Executive dashboard</strong><strong>Risk report</strong></div>
+    </div>
+    <div className="lineage-observation"><Activity size={15} /><span>Quality incident here?</span><strong>See 2 reports and 12 downstream consumers</strong></div>
+  </div>;
 }
 
 export default function Home() {
@@ -138,7 +169,7 @@ export default function Home() {
             <div className="hero-proof"><EvidenceLine>Policy-aware discovery across catalog, quality and lineage</EvidenceLine><EvidenceLine>Human stewardship remains the authority for governed change</EvidenceLine></div>
           </div>
           <div className="hero-visual" aria-label="DataGenie governed intelligence constellation">
-            <img className="hero-image" src={HERO_URL} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} />
+            <div className="hero-network" aria-hidden="true"><span /><span /><span /><span /><i /><i /><i /></div>
             <div className="hero-console">
               <div className="console-top"><span className="console-pulse" /><span>Governed asset context</span><code>trusted</code></div>
               <div className="console-row"><span>Owner</span><strong>Finance data stewardship</strong></div>
@@ -164,14 +195,14 @@ export default function Home() {
         </section>
 
         <section className="evidence-story">
-          <div className="story-image"><img src={EVIDENCE_URL} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} /><div className="image-caption"><Sparkles size={15} />From harvested fact to stewarded context</div></div>
+          <div className="story-image"><AssetDossierVisual /><div className="image-caption"><Sparkles size={15} />From harvested fact to stewarded context</div></div>
           <div className="story-copy"><SectionMark>Evidence is the product</SectionMark><h2>Every asset should carry the context needed to use it responsibly.</h2><p>DataGenie keeps discovered metadata distinct from stewarded contributions, so a new harvest adds operational facts without erasing the human context that makes a dataset usable.</p><div className="story-stat-grid"><div><strong>Who</strong><span>Owner, steward and accountable domain</span></div><div><strong>What</strong><span>Technical schema, description and classification</span></div><div><strong>When</strong><span>Freshness, evidence timestamps and lifecycle</span></div><div><strong>Why</strong><span>Policy result, lineage impact and intended use</span></div></div></div>
         </section>
 
         <section id="governance" className="governance section-rail">
           <div className="governance-intro"><SectionMark>The governance model</SectionMark><h2>Agents can prepare intent. <em>Stewards govern change.</em></h2><p>DataGenie makes the separation explicit in the product, the API and the audit trail. A proposal is evidence for a decision; it is never the decision itself.</p></div>
           <div className="governance-layout">
-            <div className="governance-workflow"><img src={WORKFLOW_URL} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} /><div className="workflow-overlay"><span className="workflow-label">Proposal-only boundary</span><strong>Recommendation ≠ governed change</strong><p>Every governed mutation stays behind a named steward review and server-enforced confirmation.</p></div></div>
+            <div className="governance-workflow"><ProposalBoundaryVisual /><div className="workflow-overlay"><span className="workflow-label">Proposal-only boundary</span><strong>Recommendation ≠ governed change</strong><p>Every governed mutation stays behind a named steward review and server-enforced confirmation.</p></div></div>
             <div className="boundary-list">
               <div><span>01</span><p><strong>Agent or host creates structured intent.</strong> The request includes its source, evidence, change diff, policy snapshot and version preconditions.</p></div>
               <div><span>02</span><p><strong>The proposal is a pending inbox record.</strong> The asset remains unchanged while the steward sees impact, policy result and provenance.</p></div>
@@ -182,7 +213,7 @@ export default function Home() {
           <div className="separation-proof"><LockKeyhole size={20} /><p><strong>Why route separation matters:</strong> the public/UI proposal path records reviewable intent, while the protected steward-inbox execution path receives the server-issued confirmation nonce and validates current authority. A model, browser client or MCP host cannot manufacture that confirmation context or reuse an old approval after policy, role or resource state changes.</p></div>
         </section>
 
-        <section className="lineage-section"><div className="lineage-copy"><SectionMark>Lineage with operational meaning</SectionMark><h2>Understand what a change touches before the business feels it.</h2><p>DataGenie represents data relationships with typed provenance and confidence, then connects impact to the people who own the affected assets and reports.</p><div className="lineage-points"><EvidenceLine>Trace upstream sources and downstream consumers</EvidenceLine><EvidenceLine>Keep column-level relationships where evidence is available</EvidenceLine><EvidenceLine>Surface quality incidents in their operational context</EvidenceLine></div></div><div className="lineage-art"><img src={LINEAGE_URL} alt="" onError={(event) => { event.currentTarget.style.display = "none"; }} /><div className="lineage-tag"><Route size={15} />Bounded impact · confidence visible</div></div></section>
+        <section className="lineage-section"><div className="lineage-copy"><SectionMark>Lineage with operational meaning</SectionMark><h2>Understand what a change touches before the business feels it.</h2><p>DataGenie represents data relationships with typed provenance and confidence, then connects impact to the people who own the affected assets and reports.</p><div className="lineage-points"><EvidenceLine>Trace upstream sources and downstream consumers</EvidenceLine><EvidenceLine>Keep column-level relationships where evidence is available</EvidenceLine><EvidenceLine>Surface quality incidents in their operational context</EvidenceLine></div></div><div className="lineage-art"><LineageFlowVisual /><div className="lineage-tag"><Route size={15} />Bounded impact · confidence visible</div></div></section>
 
         <section id="docs" className="docs section-rail">
           <div className="docs-heading"><SectionMark>Documentation center</SectionMark><h2>What, why and how—without hiding the hard parts.</h2><p>Use these starting points to align product, platform, stewardship and support teams around a safe enterprise rollout.</p></div>
@@ -210,7 +241,7 @@ export default function Home() {
 
         <section className="test-plan section-rail"><div className="test-plan-heading"><SectionMark>Detailed test plan</SectionMark><h2>Test the boundaries, not just the happy path.</h2><div className="test-proof-row"><span className="proof-chip proof-chip--system">● identity and scope</span><span className="proof-chip proof-chip--review">◆ pending is not applied</span><span className="proof-chip proof-chip--risk">▲ fail closed on mismatch</span></div></div><div className="test-table-wrap"><table><thead><tr><th>Test area</th><th>Scenario</th><th>Pass criteria</th><th>Evidence retained</th></tr></thead><tbody><tr><td>Tenant binding</td><td>Token tenant and host ID match approved test configuration.</td><td>Only tenant-scoped assets/ledger records are returned.</td><td>Request ID, safe tenant/host metadata.</td></tr><tr><td>OAuth audience</td><td>Valid and invalid protected-resource audience tokens.</td><td>Invalid audience receives safe 401; valid token reaches scope check.</td><td>Status, safe code, request ID.</td></tr><tr><td>Least privilege</td><td>Call proposal tool without governance:propose.</td><td>Safe deny; no proposal/inbox record created.</td><td>Request ID and ledger outcome.</td></tr><tr><td>Schema handling</td><td>Send malformed or extra tool arguments.</td><td>Structured validation error; no broadened interpretation.</td><td>Request ID, validation code.</td></tr><tr><td>Proposal separation</td><td>Create a permitted test proposal from an approved host.</td><td>Pending inbox record only; governed asset is unchanged.</td><td>Proposal ID, source/host, request ID.</td></tr><tr><td>Execution rechecks</td><td>Change role, policy, resource version, nonce or expiry after approval.</td><td>Execution blocks and preserves durable audit evidence.</td><td>Proposal status, safe reason, audit event.</td></tr><tr><td>Correlation</td><td>Investigate a known tool result by request ID.</td><td>Ledger matches tenant, host, tool, outcome and duration.</td><td>Sanitized support record.</td></tr></tbody></table></div></section>
 
-        <section className="final-cta"><img src={CONSTELLATION_URL} alt="DataGenie constellation mark" onError={(event) => { event.currentTarget.style.display = "none"; }} /><div><SectionMark>Build trust into the data estate</SectionMark><h2>Give every team a clearer route from data to decision.</h2></div><a href="#docs" className="button button-light">Explore the documentation <ArrowRight size={17} /></a></section>
+        <section className="final-cta"><div className="cta-signal" aria-hidden="true"><span /><span /><span /><i /><i /></div><div><SectionMark>Build trust into the data estate</SectionMark><h2>Give every team a clearer route from data to decision.</h2></div><a href="#docs" className="button button-light">Explore the documentation <ArrowRight size={17} /></a></section>
       </main>
 
       <footer><div className="footer-brand"><span className="footer-logo"><img src={LOGO_URL} alt="DataGenie" /></span><p>Discover · Trust · Govern · Empower</p></div><div className="footer-links"><a href="#platform">Platform</a><a href="#governance">Governance</a><a href="#docs">Documentation</a><a href="#staging">Staging guide</a></div><p className="footer-note">Static-site ready. Set <code>VITE_BASE_PATH</code> to your GitHub Pages repository path when building for a project site.</p></footer>
