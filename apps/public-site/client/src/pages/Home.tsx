@@ -31,8 +31,6 @@ const navItems = [
   ["Platform", "#platform"],
   ["Architecture", "#architecture"],
   ["Governance model", "#governance"],
-  ["Documentation", "#docs"],
-  ["Staging guide", "#staging"],
 ];
 
 const productPillars = [
@@ -267,7 +265,7 @@ export default function Home() {
         <section className="final-cta"><div className="cta-signal" aria-hidden="true"><span /><span /><span /><i /><i /></div><div><SectionMark>Build trust into the data estate</SectionMark><h2>Give every team a clearer route from data to decision.</h2></div><a href="#docs" className="button button-light">Explore the documentation <ArrowRight size={17} /></a></section>
       </main>
 
-      <footer><div className="footer-brand"><span className="footer-logo"><img src={LOGO_URL} alt="DataGenie" /></span><p>Discover · Trust · Govern · Empower</p></div><div className="footer-links"><a href="#platform">Platform</a><a href="#governance">Governance</a><a href="#docs">Documentation</a><a href="#staging">Staging guide</a></div><p className="footer-note">Static-site ready. Set <code>VITE_BASE_PATH</code> to your GitHub Pages repository path when building for a project site.</p></footer>
+      <footer><div className="footer-brand"><span className="footer-logo"><img src={LOGO_URL} alt="DataGenie" /></span><p>Discover · Trust · Govern · Empower</p></div><div className="footer-links"><a href="#platform">Platform</a><a href="#governance">Governance</a><a href="#docs">Documentation</a><a href="#staging">Staging guide</a></div><p className="footer-note">Governed data intelligence, grounded in evidence, lineage and accountable stewardship.</p></footer>
     </div>
   );
 }
