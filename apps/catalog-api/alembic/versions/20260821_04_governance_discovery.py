@@ -16,12 +16,26 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
     glossary_status = sa.Enum("PROPOSED", "APPROVED", "REJECTED", "DEPRECATED", name="glossarystatus")
     classification_type = sa.Enum("EMAIL_ADDRESS", "PHONE_NUMBER", "GOVERNMENT_IDENTIFIER", "PAYMENT_DATA", "HEALTH_INFORMATION", name="classificationtype")
     review_status = sa.Enum("PROPOSED", "APPROVED", "REJECTED", name="reviewstatus")
     discovery_event_type = sa.Enum("SEARCH", "ASSET_VIEW", "CERTIFICATION_REQUEST", "USAGE_DECISION", name="discoveryeventtype")
     usage_decision_status = sa.Enum("PENDING", "APPROVED", "REJECTED", name="usagedecisionstatus")
     suggestion_type = sa.Enum("DESCRIPTION", "GLOSSARY_MAPPING", "OWNER", "QUALITY_RULE", name="suggestiontype")
+
+    # `business_glossary_terms` already exists. PostgreSQL therefore will not
+    # auto-create its enum while adding the status column in a batch operation.
+    # Create every named enum explicitly before either altered or new tables use it.
+    for enum_type in (
+        glossary_status,
+        classification_type,
+        review_status,
+        discovery_event_type,
+        usage_decision_status,
+        suggestion_type,
+    ):
+        enum_type.create(bind, checkfirst=True)
 
     op.create_table(
         "governance_domains",
@@ -121,6 +135,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
     op.drop_table("governance_suggestions")
     op.drop_table("discovery_events")
     op.drop_table("certification_requests")
@@ -144,3 +159,12 @@ def downgrade() -> None:
         batch_op.drop_column("quality_score")
         batch_op.drop_column("domain_id")
     op.drop_table("governance_domains")
+    for enum_name in (
+        "suggestiontype",
+        "usagedecisionstatus",
+        "discoveryeventtype",
+        "reviewstatus",
+        "classificationtype",
+        "glossarystatus",
+    ):
+        sa.Enum(name=enum_name).drop(bind, checkfirst=True)
