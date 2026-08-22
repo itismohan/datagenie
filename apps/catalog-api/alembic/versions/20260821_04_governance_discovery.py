@@ -7,6 +7,7 @@ Create Date: 2026-08-21
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 revision = "20260821_04"
@@ -17,12 +18,15 @@ depends_on = None
 
 def upgrade() -> None:
     bind = op.get_bind()
-    glossary_status = sa.Enum("PROPOSED", "APPROVED", "REJECTED", "DEPRECATED", name="glossarystatus")
-    classification_type = sa.Enum("EMAIL_ADDRESS", "PHONE_NUMBER", "GOVERNMENT_IDENTIFIER", "PAYMENT_DATA", "HEALTH_INFORMATION", name="classificationtype")
-    review_status = sa.Enum("PROPOSED", "APPROVED", "REJECTED", name="reviewstatus")
-    discovery_event_type = sa.Enum("SEARCH", "ASSET_VIEW", "CERTIFICATION_REQUEST", "USAGE_DECISION", name="discoveryeventtype")
-    usage_decision_status = sa.Enum("PENDING", "APPROVED", "REJECTED", name="usagedecisionstatus")
-    suggestion_type = sa.Enum("DESCRIPTION", "GLOSSARY_MAPPING", "OWNER", "QUALITY_RULE", name="suggestiontype")
+    # These are shared named PostgreSQL types. Explicit manual creation is
+    # required before the batch alteration, while create_type=False prevents
+    # later create_table calls from attempting to create the same type again.
+    glossary_status = postgresql.ENUM("PROPOSED", "APPROVED", "REJECTED", "DEPRECATED", name="glossarystatus", create_type=False)
+    classification_type = postgresql.ENUM("EMAIL_ADDRESS", "PHONE_NUMBER", "GOVERNMENT_IDENTIFIER", "PAYMENT_DATA", "HEALTH_INFORMATION", name="classificationtype", create_type=False)
+    review_status = postgresql.ENUM("PROPOSED", "APPROVED", "REJECTED", name="reviewstatus", create_type=False)
+    discovery_event_type = postgresql.ENUM("SEARCH", "ASSET_VIEW", "CERTIFICATION_REQUEST", "USAGE_DECISION", name="discoveryeventtype", create_type=False)
+    usage_decision_status = postgresql.ENUM("PENDING", "APPROVED", "REJECTED", name="usagedecisionstatus", create_type=False)
+    suggestion_type = postgresql.ENUM("DESCRIPTION", "GLOSSARY_MAPPING", "OWNER", "QUALITY_RULE", name="suggestiontype", create_type=False)
 
     # `business_glossary_terms` already exists. PostgreSQL therefore will not
     # auto-create its enum while adding the status column in a batch operation.
@@ -167,4 +171,4 @@ def downgrade() -> None:
         "classificationtype",
         "glossarystatus",
     ):
-        sa.Enum(name=enum_name).drop(bind, checkfirst=True)
+        postgresql.ENUM(name=enum_name, create_type=False).drop(bind, checkfirst=True)

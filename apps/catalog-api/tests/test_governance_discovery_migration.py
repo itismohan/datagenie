@@ -11,8 +11,10 @@ def test_governance_discovery_creates_named_enums_before_batch_alter() -> None:
 
     enum_creation = source.index("enum_type.create(bind, checkfirst=True)")
     glossary_batch_alter = source.index('with op.batch_alter_table("business_glossary_terms")')
+    upgrade = source[: source.index("def downgrade() -> None:")]
 
     assert enum_creation < glossary_batch_alter
+    assert "from sqlalchemy.dialects import postgresql" in source
     for enum_name in (
         "glossarystatus",
         "classificationtype",
@@ -22,10 +24,11 @@ def test_governance_discovery_creates_named_enums_before_batch_alter() -> None:
         "suggestiontype",
     ):
         assert enum_name in source
+        assert f'name="{enum_name}", create_type=False' in upgrade
 
 
 def test_governance_discovery_downgrade_drops_named_enums() -> None:
     source = MIGRATION.read_text()
     downgrade = source[source.index("def downgrade() -> None:") :]
 
-    assert 'sa.Enum(name=enum_name).drop(bind, checkfirst=True)' in downgrade
+    assert 'postgresql.ENUM(name=enum_name, create_type=False).drop(bind, checkfirst=True)' in downgrade
