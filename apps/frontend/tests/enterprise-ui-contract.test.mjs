@@ -22,6 +22,7 @@ for (const supportSignal of ["X-Request-ID", "Request ID", "Do not share tokens"
 for (const responsiveSignal of ["@media (max-width: 980px)", "@media (max-width: 720px)", ":focus-visible", ".sidebar--open"]) {
   assert.ok(styles.includes(responsiveSignal), `Expected responsive/accessibility style: ${responsiveSignal}`);
 }
+assert.ok(app.includes('src="/datagenie.png"'), "Expected the approved DataGenie logo in the product shell.");
 assert.equal(packageJson.scripts.build, "vite build");
 
 console.log("Enterprise UI contract checks passed.");
