@@ -123,6 +123,6 @@ jobs:
           EOF
           docker compose --env-file .env -f infra/docker-compose.yml -f infra/docker-compose.staging.yml config -q
       - name: Validate Prometheus configuration and alert rules
-        run: docker run --rm -v "$PWD/infra:/etc/prometheus:ro" prom/prometheus:v2.54.1 promtool check config /etc/prometheus/prometheus.yml
+        run: docker run --rm --entrypoint /bin/promtool -v "$PWD/infra:/etc/prometheus:ro" prom/prometheus:v2.54.1 check config /etc/prometheus/prometheus.yml
       - name: Validate scripts
         run: bash -n infra/scripts/backup-postgres.sh infra/scripts/verify-postgres-restore.sh
